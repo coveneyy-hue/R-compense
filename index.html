@@ -49,9 +49,18 @@
 
     .toolbar { display:flex; gap: 10px; align-items: end; flex-wrap: wrap; }
     .toolbar > div { flex: 1; min-width: 160px; }
-    details summary { cursor: pointer; font-weight: 900; }
-
     textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+    details summary { cursor: pointer; font-weight: 1000; }
+    details summary::-webkit-details-marker { display:none; }
+    details summary::before {
+      content: "▸";
+      display:inline-block;
+      margin-right: 8px;
+      color:#111827;
+      transform: translateY(-1px);
+    }
+    details[open] summary::before { content: "▾"; }
 
     /* Barre enfant fixe */
     .kidBar{
@@ -138,98 +147,7 @@
       <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l’historique complet.</p>
     </section>
 
-    <!-- Détails / Historique -->
-    <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-weight:1000;">Historique (transactions)</div>
-        <div class="muted">
-          <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
-        </div>
-      </div>
-
-      <div class="toolbar" style="margin-top:10px;">
-        <div>
-          <label>Filtrer (enfant) — multi</label>
-          <select id="filterChild" multiple size="3"></select>
-          <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
-        </div>
-
-        <div>
-          <label>Filtrer (catégorie) — multi</label>
-          <select id="filterCat" multiple size="5"></select>
-        </div>
-
-        <div>
-          <label>Description contient</label>
-          <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
-        </div>
-
-        <div>
-          <label>Du</label>
-          <input id="fromDate" type="date" />
-        </div>
-
-        <div>
-          <label>Au</label>
-          <input id="toDate" type="date" />
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top:10px;">
-        <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtre</button>
-        <button id="clearFilterBtn" class="secondary" type="button">Effacer filtre</button>
-        <button id="exportBtn" class="secondary" type="button">Exporter JSON</button>
-        <button id="importBtn" class="secondary" type="button">Importer JSON</button>
-      </div>
-      <input id="importFile" type="file" accept="application/json" style="display:none;" />
-
-      <div style="overflow:auto; margin-top: 10px;">
-        <table>
-          <thead>
-            <tr>
-              <th><button class="secondary smallBtn" type="button" data-sort="date">Date</button></th>
-              <th><button class="secondary smallBtn" type="button" data-sort="child">Enfant</button></th>
-              <th><button class="secondary smallBtn" type="button" data-sort="category">Catégorie</button></th>
-              <th><button class="secondary smallBtn" type="button" data-sort="desc">Description</button></th>
-              <th class="right"><button class="secondary smallBtn" type="button" data-sort="amount">Montant</button></th>
-              <th class="right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-      <p class="muted" style="margin:10px 0 0;">Tri: touche l’en-tête (re-touche = inverse asc/desc).</p>
-    </section>
-
-    <!-- Journal -->
-    <section class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-weight:1000;">Journal (actions)</div>
-        <div class="muted" id="logCount"></div>
-      </div>
-
-      <div class="actions" style="margin-top:10px;">
-        <button id="clearLogBtn" class="danger" type="button">Vider le journal</button>
-        <button id="exportLogBtn" class="secondary" type="button">Exporter journal JSON</button>
-      </div>
-
-      <div style="overflow:auto; margin-top: 10px;">
-        <table>
-          <thead>
-            <tr>
-              <th>Date/Heure</th>
-              <th>Action</th>
-              <th>Détails</th>
-              <th class="right">Montant</th>
-            </tr>
-          </thead>
-          <tbody id="logRows"></tbody>
-        </table>
-      </div>
-      <p class="muted" style="margin:10px 0 0;">Conserve : AJOUT / MODIF / SUPPR / PARAM / IMPORT / EXPORT / BACKUP.</p>
-    </section>
-
-    <!-- Paramètres -->
+    <!-- Paramètres (AU-DESSUS de l'historique transactions) -->
     <section class="card">
       <details>
         <summary>Paramètres (catégories, backup)</summary>
@@ -263,6 +181,103 @@
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
           <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
         </div>
+      </details>
+    </section>
+
+    <!-- Historique transactions (FERMÉ par défaut) -->
+    <section class="card">
+      <details id="txDetails">
+        <summary>Historique (transactions)</summary>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <div class="muted">
+            <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
+          </div>
+        </div>
+
+        <div class="toolbar" style="margin-top:10px;">
+          <div>
+            <label>Filtrer (enfant) — multi</label>
+            <select id="filterChild" multiple size="3"></select>
+            <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
+          </div>
+
+          <div>
+            <label>Filtrer (catégorie) — multi</label>
+            <select id="filterCat" multiple size="5"></select>
+          </div>
+
+          <div>
+            <label>Description contient</label>
+            <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
+          </div>
+
+          <div>
+            <label>Du</label>
+            <input id="fromDate" type="date" />
+          </div>
+
+          <div>
+            <label>Au</label>
+            <input id="toDate" type="date" />
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtre</button>
+          <button id="clearFilterBtn" class="secondary" type="button">Effacer filtre</button>
+          <button id="exportBtn" class="secondary" type="button">Exporter JSON</button>
+          <button id="importBtn" class="secondary" type="button">Importer JSON</button>
+        </div>
+        <input id="importFile" type="file" accept="application/json" style="display:none;" />
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table>
+            <thead>
+              <tr>
+                <th><button class="secondary smallBtn" type="button" data-sort="date">Date</button></th>
+                <th><button class="secondary smallBtn" type="button" data-sort="child">Enfant</button></th>
+                <th><button class="secondary smallBtn" type="button" data-sort="category">Catégorie</button></th>
+                <th><button class="secondary smallBtn" type="button" data-sort="desc">Description</button></th>
+                <th class="right"><button class="secondary smallBtn" type="button" data-sort="amount">Montant</button></th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">Tri: touche l’en-tête (re-touche = inverse asc/desc).</p>
+      </details>
+    </section>
+
+    <!-- Journal (FERMÉ par défaut) -->
+    <section class="card">
+      <details id="logDetails">
+        <summary>Journal (actions)</summary>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <div class="muted" id="logCount"></div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="clearLogBtn" class="danger" type="button">Vider le journal</button>
+          <button id="exportLogBtn" class="secondary" type="button">Exporter journal JSON</button>
+        </div>
+
+        <div style="overflow:auto; margin-top: 10px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date/Heure</th>
+                <th>Action</th>
+                <th>Détails</th>
+                <th class="right">Montant</th>
+              </tr>
+            </thead>
+            <tbody id="logRows"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin:10px 0 0;">Conserve : AJOUT / MODIF / SUPPR / PARAM / IMPORT / EXPORT / BACKUP.</p>
       </details>
     </section>
   </main>
@@ -432,10 +447,7 @@ let CFG = null;
 let ALL_TX = [];
 let ALL_LOG = [];
 
-// Contexte enfant via boutons
 let ACTIVE_CHILD = "Lily-Rose";
-
-// Filtres (multi) + tri
 let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
 let SORT = { col: "date", dir: "desc" };
 
@@ -446,7 +458,6 @@ let EDIT_ID = null;
 ========================= */
 function setActiveChild(name) {
   ACTIVE_CHILD = name;
-
   $("kidLily").classList.toggle("active", ACTIVE_CHILD === "Lily-Rose");
   $("kidVictor").classList.toggle("active", ACTIVE_CHILD === "Victor");
 }
@@ -471,9 +482,7 @@ function renderSelectOptions(selectEl, items, selected) {
     selectEl.appendChild(opt);
   }
 }
-
 function renderFilterSelects() {
-  // enfants multi
   const selChild = $("filterChild");
   selChild.innerHTML = "";
   for (const kid of CFG.kids) {
@@ -483,7 +492,6 @@ function renderFilterSelects() {
     selChild.appendChild(opt);
   }
 
-  // catégories multi
   const selCat = $("filterCat");
   selCat.innerHTML = "";
   for (const c of CFG.cats) {
@@ -509,7 +517,6 @@ function compareRows(a, b, col, dir) {
     const nb = Number(b.amount || 0);
     return sign * (na - nb);
   }
-
   if (col === "date") {
     const sa = String(a.date || "");
     const sb = String(b.date || "");
@@ -517,7 +524,6 @@ function compareRows(a, b, col, dir) {
     if (sa > sb) return sign *  1;
     return sign * ((a.id||0) - (b.id||0));
   }
-
   if (col === "desc") {
     const sa = String(a.desc || "").toLowerCase();
     const sb = String(b.desc || "").toLowerCase();
@@ -525,7 +531,6 @@ function compareRows(a, b, col, dir) {
     if (sa > sb) return sign *  1;
     return sign * ((a.id||0) - (b.id||0));
   }
-
   if (col === "child") {
     const sa = String(a.child || "").toLowerCase();
     const sb = String(b.child || "").toLowerCase();
@@ -533,7 +538,6 @@ function compareRows(a, b, col, dir) {
     if (sa > sb) return sign *  1;
     return sign * ((a.id||0) - (b.id||0));
   }
-
   if (col === "category") {
     const sa = String(a.category || "").toLowerCase();
     const sb = String(b.category || "").toLowerCase();
@@ -541,7 +545,6 @@ function compareRows(a, b, col, dir) {
     if (sa > sb) return sign *  1;
     return sign * ((a.id||0) - (b.id||0));
   }
-
   return sign * ((a.id||0) - (b.id||0));
 }
 
@@ -648,7 +651,6 @@ async function backupNow() {
   const jsonName = `budget-enfants-${stamp}.json`;
   const csvName  = `budget-enfants-${stamp}.csv`;
 
-  // Totaux
   const totals = { "Lily-Rose": 0, "Victor": 0 };
   for (const r of tx) {
     if (totals[r.child] === undefined) totals[r.child] = 0;
@@ -656,7 +658,6 @@ async function backupNow() {
   }
   const totalGlobal = Object.values(totals).reduce((a,b)=>a+b,0);
 
-  // CSV (séparateur ;)
   const csvEscape = (v) => {
     const s = String(v ?? "");
     if (/[;"\n\r]/.test(s)) return `"${s.replaceAll('"','""')}"`;
@@ -775,7 +776,6 @@ function renderTable() {
       const r = ALL_TX.find(x => x.id === id);
       if (!r) return;
 
-      // bascule contexte enfant automatiquement
       setActiveChild(r.child);
 
       $("dateInput").value = r.date;
@@ -1047,7 +1047,6 @@ async function importJSON(file) {
   try { payload = JSON.parse(text); } catch { return setStatus("Fichier JSON invalide."); }
   if (!payload || !Array.isArray(payload.tx) || !payload.cfg) return setStatus("JSON non reconnu.");
 
-  // On force les enfants aux 2 boutons
   CFG = payload.cfg;
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
@@ -1128,19 +1127,16 @@ async function initUIAfterConfig() {
   await updateBackupUI();
   maybeRemindBackup();
 
-  // contexte initial
   setActiveChild(CFG.defaults.kid || "Lily-Rose");
 }
 
 async function init() {
-  // PWA
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
   CFG = await loadConfig();
 
-  // sécurité
   CFG.kids = FIXED_KIDS;
   CFG.defaults = CFG.defaults || { kid: FIXED_KIDS[0], cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
   CFG.defaults.kid = FIXED_KIDS[0];
@@ -1151,7 +1147,6 @@ async function init() {
   await initUIAfterConfig();
   resetEntryForm();
 
-  // actions saisie
   $("saveBtn").addEventListener("click", saveOrUpdate);
   $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
   $("cancelEditBtn").addEventListener("click", cancelEdit);
@@ -1161,11 +1156,9 @@ async function init() {
   $("backupNowBtn2").addEventListener("click", backupNow);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
 
-  // boutons enfant
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
 
-  // filtres
   $("applyFilterBtn").addEventListener("click", () => {
     FILTER.children = getSelectedValues($("filterChild"));
     FILTER.cats = getSelectedValues($("filterCat"));
@@ -1187,7 +1180,6 @@ async function init() {
     renderTable();
   });
 
-  // export/import
   $("exportBtn").addEventListener("click", exportJSON);
   $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => {
@@ -1197,15 +1189,12 @@ async function init() {
     e.target.value = "";
   });
 
-  // journal
   $("clearLogBtn").addEventListener("click", clearLog);
   $("exportLogBtn").addEventListener("click", exportLogOnly);
 
-  // paramètres
   $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
   $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
 
-  // tri
   document.querySelectorAll('button[data-sort]').forEach(btn => {
     btn.addEventListener("click", () => {
       const col = btn.getAttribute("data-sort");
@@ -1214,13 +1203,12 @@ async function init() {
       } else {
         SORT.col = col;
         SORT.dir = "asc";
-        if (col === "date") SORT.dir = "desc"; // plus récent d'abord
+        if (col === "date") SORT.dir = "desc";
       }
       renderTable();
     });
   });
 
-  // enter = save
   $("amtInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
   $("descInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
 }
