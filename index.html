@@ -526,14 +526,18 @@ async function saveBackupReminderFromUI() {
 }
 
 async function backupNow() {
+  const tx = await dbGetAll(STORE_TX);
+  const log = await dbGetAll(STORE_LOG);
+
   const payload = {
     version: 1,
     exportedAt: nowISO(),
     cfg: CFG,
-    tx: await dbGetAll(STORE_TX),
-    log: await dbGetAll(STORE_LOG)
+    tx,
+    log
   };
 
+  // noms de fichiers
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -541,29 +545,83 @@ async function backupNow() {
   const hh = String(d.getHours()).padStart(2, "0");
   const mi = String(d.getMinutes()).padStart(2, "0");
   const ss = String(d.getSeconds()).padStart(2, "0");
-  const filename = `budget-enfants-${yyyy}${mm}${dd}-${hh}${mi}${ss}.json`;
+  const stamp = `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
 
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
+  const jsonName = `budget-enfants-${stamp}.json`;
+  const csvName  = `budget-enfants-${stamp}.csv`;
 
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  // --- Totaux ---
+  const totals = { "Lily-Rose": 0, "Victor": 0 };
+  for (const r of tx) {
+    if (totals[r.child] === undefined) totals[r.child] = 0;
+    totals[r.child] += Number(r.amount || 0);
+  }
+  const totalGlobal = Object.values(totals).reduce((a,b)=>a+b,0);
 
+  // --- CSV (lisible) ---
+  // CSV avec séparateur ; (souvent mieux sur Excel FR)
+  // On met un “en-tête” de totaux sous forme de lignes commentées (#)
+  const csvEscape = (v) => {
+    const s = String(v ?? "");
+    // on met en guillemets si ; ou " ou saut de ligne
+    if (/[;"\n\r]/.test(s)) return `"${s.replaceAll('"','""')}"`;
+    return s;
+  };
+
+  // tri du plus récent au plus ancien (date desc puis id desc si dispo)
+  const txSorted = [...tx].sort((a,b) => (String(b.date||"").localeCompare(String(a.date||"")) || ((b.id||0)-(a.id||0))));
+
+  const lines = [];
+  lines.push(`# Export lisible - ${nowISO()}`);
+  lines.push(`# Total Lily-Rose;${totals["Lily-Rose"].toFixed(2)}`);
+  lines.push(`# Total Victor;${totals["Victor"].toFixed(2)}`);
+  lines.push(`# Total global;${totalGlobal.toFixed(2)}`);
+  lines.push(`#`);
+  lines.push(`Date;Enfant;Catégorie;Montant;Description`);
+
+  for (const r of txSorted) {
+    lines.push([
+      csvEscape(r.date),
+      csvEscape(r.child),
+      csvEscape(r.category),
+      csvEscape(Number(r.amount || 0).toFixed(2)),
+      csvEscape(r.desc || "")
+    ].join(";"));
+  }
+
+  const csvText = lines.join("\n");
+
+  // --- Téléchargements ---
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // délai pour éviter certains bugs mobiles
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  };
+
+  // 1) JSON
+  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), jsonName);
+
+  // 2) CSV lisible
+  downloadBlob(new Blob([csvText], { type: "text/csv;charset=utf-8" }), csvName);
+
+  // marquer backup
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   CFG.backup.lastBackupTs = Date.now();
   await saveConfig(CFG);
 
-  await logAction("BACKUP", 0, `Backup auto généré: ${filename}`);
+  await logAction("BACKUP", 0, `Backup: ${jsonName} + ${csvName}`);
   await refreshData();
   await updateBackupUI();
 
-  setStatus("Backup généré ✅ (fichier téléchargé)");
+  setStatus("Backup généré ✅ (JSON + CSV)");
 }
+
 
 /* =========================
    Render
@@ -1053,3 +1111,4 @@ init();
 </script>
 </body>
 </html>
+
