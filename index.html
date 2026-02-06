@@ -10,41 +10,48 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
     header { padding: 14px 16px; background: #111827; color: #fff; }
     header h1 { margin: 0; font-size: 18px; }
-    main { padding: 14px 16px 110px; max-width: 900px; margin: 0 auto; }
+    main { padding: 14px 16px 120px; max-width: 980px; margin: 0 auto; }
 
     .card { background:#fff; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); margin-bottom: 12px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     label { display:block; font-size: 12px; color:#374151; margin-bottom: 6px; }
+
     select, input, button, textarea {
       width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 16px; background:#fff;
       box-sizing: border-box;
     }
     input[type="number"] { text-align: right; }
-    button { cursor: pointer; border: 0; background:#111827; color:#fff; font-weight: 700; }
+    button { cursor: pointer; border: 0; background:#111827; color:#fff; font-weight: 800; }
     button.secondary { background:#e5e7eb; color:#111827; border: 1px solid #d1d5db; }
     button.danger { background:#b91c1c; }
     .actions { display:flex; gap: 10px; flex-wrap: wrap; }
     .actions > * { flex: 1; min-width: 140px; }
+
     .muted { color:#6b7280; font-size: 13px; }
+    .hint { font-size:12px; color:#6b7280; margin-top:6px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
     .totals { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .totalBox { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
-    .totalBox .name { font-weight: 800; }
-    .totalBox .amt { font-size: 20px; font-weight: 900; margin-top: 4px; }
+    .totalBox .name { font-weight: 900; }
+    .totalBox .amt { font-size: 20px; font-weight: 1000; margin-top: 4px; }
     .amt.pos { color:#065f46; }
     .amt.neg { color:#b91c1c; }
+
     table { width:100%; border-collapse: collapse; }
     th, td { border-bottom: 1px solid #f0f1f4; padding: 10px 6px; font-size: 14px; vertical-align: top; }
     th { text-align:left; color:#374151; font-size: 12px; }
     td.right, th.right { text-align:right; }
+
     .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#f3f4f6; font-size: 12px; color:#111827; }
-    .smallBtn { padding:8px 10px; border-radius:10px; font-size: 13px; }
+    .smallBtn { padding:8px 10px; border-radius:10px; font-size: 13px; width:auto; }
+    .badgeEdit { display:inline-block; margin-left: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#111827; color:#fff; }
+
     .toolbar { display:flex; gap: 10px; align-items: end; flex-wrap: wrap; }
     .toolbar > div { flex: 1; min-width: 160px; }
-    details summary { cursor: pointer; font-weight: 800; }
+    details summary { cursor: pointer; font-weight: 900; }
+
     textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
-    .badgeEdit { display:inline-block; margin-left: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#111827; color:#fff; }
-    .hint { font-size:12px; color:#6b7280; margin-top:6px; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
     /* Barre enfant fixe */
     .kidBar{
@@ -64,7 +71,8 @@
       border: 1px solid #d1d5db;
       background: #ffffff;
       color: #111827;
-      font-weight: 900;
+      font-weight: 1000;
+      padding: 12px 12px;
     }
     .kidBtn.active{
       border-color: #111827;
@@ -80,7 +88,7 @@
     <!-- Saisie -->
     <section class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-weight:900;">
+        <div style="font-weight:1000;">
           Saisie
           <span id="editBadge" class="badgeEdit" style="display:none;">MODE MODIFICATION</span>
         </div>
@@ -117,7 +125,7 @@
 
       <div class="actions" style="margin-top:10px;">
         <button id="resetBtn" class="secondary" type="button">Réinitialiser</button>
-        <button id="backupNowBtn" class="secondary" type="button">Backup auto</button>
+        <button id="backupNowBtn" class="secondary" type="button">Backup auto (JSON + CSV)</button>
       </div>
 
       <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
@@ -130,22 +138,37 @@
       <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l’historique complet.</p>
     </section>
 
-    <!-- Détails -->
+    <!-- Détails / Historique -->
     <section class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-weight:900;">Détails (lignes)</div>
-        <div class="muted" id="rowsCount"></div>
+        <div style="font-weight:1000;">Historique (transactions)</div>
+        <div class="muted">
+          <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
+        </div>
       </div>
 
       <div class="toolbar" style="margin-top:10px;">
         <div>
-          <label>Filtrer (enfant)</label>
-          <select id="filterChild"></select>
+          <label>Filtrer (enfant) — multi</label>
+          <select id="filterChild" multiple size="3"></select>
+          <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
         </div>
+
+        <div>
+          <label>Filtrer (catégorie) — multi</label>
+          <select id="filterCat" multiple size="5"></select>
+        </div>
+
+        <div>
+          <label>Description contient</label>
+          <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
+        </div>
+
         <div>
           <label>Du</label>
           <input id="fromDate" type="date" />
         </div>
+
         <div>
           <label>Au</label>
           <input id="toDate" type="date" />
@@ -164,23 +187,24 @@
         <table>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Enfant</th>
-              <th>Catégorie</th>
-              <th>Description</th>
-              <th class="right">Montant</th>
+              <th><button class="secondary smallBtn" type="button" data-sort="date">Date</button></th>
+              <th><button class="secondary smallBtn" type="button" data-sort="child">Enfant</button></th>
+              <th><button class="secondary smallBtn" type="button" data-sort="category">Catégorie</button></th>
+              <th><button class="secondary smallBtn" type="button" data-sort="desc">Description</button></th>
+              <th class="right"><button class="secondary smallBtn" type="button" data-sort="amount">Montant</button></th>
               <th class="right">Actions</th>
             </tr>
           </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
+      <p class="muted" style="margin:10px 0 0;">Tri: touche l’en-tête (re-touche = inverse asc/desc).</p>
     </section>
 
     <!-- Journal -->
     <section class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-        <div style="font-weight:900;">Journal (actions)</div>
+        <div style="font-weight:1000;">Journal (actions)</div>
         <div class="muted" id="logCount"></div>
       </div>
 
@@ -237,7 +261,7 @@
 
         <div class="actions" style="margin-top:10px;">
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
-          <button id="backupNowBtn2" class="secondary" type="button">Backup auto</button>
+          <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
         </div>
       </details>
     </section>
@@ -258,7 +282,7 @@ const DB_VER  = 2;
 
 const STORE_TX  = "tx";   // transactions
 const STORE_CFG = "cfg";  // settings
-const STORE_LOG = "log";  // journal des actions
+const STORE_LOG = "log";  // journal
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -331,7 +355,7 @@ async function dbDelete(store, id) { return dbTx(store, "readwrite", (s) => s.de
 async function dbClear(store) { return dbTx(store, "readwrite", (s) => s.clear()); }
 
 /* =========================
-   Journal (historique actions)
+   Journal (actions)
 ========================= */
 function nowISO() { return new Date().toISOString(); }
 function fmtTs(ts) {
@@ -381,9 +405,7 @@ function esc(s) {
 }
 
 /* =========================
-   Config par défaut
-   - Enfants FIXES (boutons)
-   - Catégories paramétrables
+   Config
 ========================= */
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
 const DEFAULT_CATS = ["École", "Bon action", "Défi", "Cadeau", "Dépense"];
@@ -409,11 +431,15 @@ async function saveConfig(newCfg) { await dbPut(STORE_CFG, { key:"settings", val
 let CFG = null;
 let ALL_TX = [];
 let ALL_LOG = [];
-let FILTER = { child: "ALL", from: "", to: "" };
-let EDIT_ID = null;
 
 // Contexte enfant via boutons
 let ACTIVE_CHILD = "Lily-Rose";
+
+// Filtres (multi) + tri
+let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+let SORT = { col: "date", dir: "desc" };
+
+let EDIT_ID = null;
 
 /* =========================
    Contexte enfant (boutons)
@@ -423,14 +449,18 @@ function setActiveChild(name) {
 
   $("kidLily").classList.toggle("active", ACTIVE_CHILD === "Lily-Rose");
   $("kidVictor").classList.toggle("active", ACTIVE_CHILD === "Victor");
-
-  // Optionnel: message léger
-  // setStatus(`Contexte: ${ACTIVE_CHILD}`);
 }
 
 /* =========================
-   Filters / selects
+   Select helpers (multi)
 ========================= */
+function getSelectedValues(selectEl) {
+  return Array.from(selectEl.selectedOptions).map(o => o.value);
+}
+function setSelectedValues(selectEl, values) {
+  const set = new Set(values || []);
+  Array.from(selectEl.options).forEach(o => { o.selected = set.has(o.value); });
+}
 function renderSelectOptions(selectEl, items, selected) {
   selectEl.innerHTML = "";
   for (const it of items) {
@@ -442,44 +472,111 @@ function renderSelectOptions(selectEl, items, selected) {
   }
 }
 
-function renderFilterSelect() {
-  const sel = $("filterChild");
-  sel.innerHTML = "";
-  const optAll = document.createElement("option");
-  optAll.value = "ALL";
-  optAll.textContent = "Tous";
-  sel.appendChild(optAll);
+function renderFilterSelects() {
+  // enfants multi
+  const selChild = $("filterChild");
+  selChild.innerHTML = "";
   for (const kid of CFG.kids) {
     const opt = document.createElement("option");
     opt.value = kid;
     opt.textContent = kid;
-    sel.appendChild(opt);
+    selChild.appendChild(opt);
   }
-  sel.value = FILTER.child;
+
+  // catégories multi
+  const selCat = $("filterCat");
+  selCat.innerHTML = "";
+  for (const c of CFG.cats) {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    selCat.appendChild(opt);
+  }
+
+  setSelectedValues(selChild, FILTER.children);
+  setSelectedValues(selCat, FILTER.cats);
+  $("filterDesc").value = FILTER.desc || "";
+}
+
+/* =========================
+   Tri + filtre
+========================= */
+function compareRows(a, b, col, dir) {
+  const sign = (dir === "asc") ? 1 : -1;
+
+  if (col === "amount") {
+    const na = Number(a.amount || 0);
+    const nb = Number(b.amount || 0);
+    return sign * (na - nb);
+  }
+
+  if (col === "date") {
+    const sa = String(a.date || "");
+    const sb = String(b.date || "");
+    if (sa < sb) return sign * -1;
+    if (sa > sb) return sign *  1;
+    return sign * ((a.id||0) - (b.id||0));
+  }
+
+  if (col === "desc") {
+    const sa = String(a.desc || "").toLowerCase();
+    const sb = String(b.desc || "").toLowerCase();
+    if (sa < sb) return sign * -1;
+    if (sa > sb) return sign *  1;
+    return sign * ((a.id||0) - (b.id||0));
+  }
+
+  if (col === "child") {
+    const sa = String(a.child || "").toLowerCase();
+    const sb = String(b.child || "").toLowerCase();
+    if (sa < sb) return sign * -1;
+    if (sa > sb) return sign *  1;
+    return sign * ((a.id||0) - (b.id||0));
+  }
+
+  if (col === "category") {
+    const sa = String(a.category || "").toLowerCase();
+    const sb = String(b.category || "").toLowerCase();
+    if (sa < sb) return sign * -1;
+    if (sa > sb) return sign *  1;
+    return sign * ((a.id||0) - (b.id||0));
+  }
+
+  return sign * ((a.id||0) - (b.id||0));
 }
 
 function applyFilter(txList) {
+  const childrenSet = new Set(FILTER.children || []);
+  const catsSet = new Set(FILTER.cats || []);
+  const q = (FILTER.desc || "").trim().toLowerCase();
+
   let rows = [...txList];
-  if (FILTER.child && FILTER.child !== "ALL") rows = rows.filter(r => r.child === FILTER.child);
+
+  if (childrenSet.size > 0) rows = rows.filter(r => childrenSet.has(r.child));
+  if (catsSet.size > 0) rows = rows.filter(r => catsSet.has(r.category));
+
   if (FILTER.from) rows = rows.filter(r => r.date >= FILTER.from);
   if (FILTER.to) rows = rows.filter(r => r.date <= FILTER.to);
-  rows.sort((a,b) => (b.date.localeCompare(a.date) || (b.id - a.id)));
+
+  if (q) rows = rows.filter(r => String(r.desc || "").toLowerCase().includes(q));
+
+  rows.sort((a,b) => compareRows(a,b,SORT.col,SORT.dir));
   return rows;
 }
 
+/* =========================
+   Edit mode / counters
+========================= */
 function setEditMode(on, id=null) {
   EDIT_ID = on ? Number(id) : null;
   $("editBadge").style.display = on ? "inline-block" : "none";
   $("cancelEditBtn").style.display = on ? "inline-block" : "none";
   $("saveBtn").textContent = on ? "Enregistrer modification" : "Enregistrer";
 }
-
-function updateDescCounter() {
-  $("descCount").textContent = String($("descInput").value.length);
-}
+function updateDescCounter() { $("descCount").textContent = String($("descInput").value.length); }
 
 /* =========================
-   Backup (download)
+   Backup helpers
 ========================= */
 function daysBetween(tsThen, tsNow) {
   const ms = Math.max(0, tsNow - tsThen);
@@ -498,12 +595,11 @@ function isBackupStale() {
 async function updateBackupUI() {
   const interval = Number(CFG?.backup?.intervalDays || 7);
   const last = CFG?.backup?.lastBackupTs;
-
   const info = `Backup: ${formatLastBackup(last)} • Rappel: ${interval} jour(s)` + (isBackupStale() ? " ⚠️" : "");
-  if ($("backupInfo")) $("backupInfo").textContent = info;
+  $("backupInfo").textContent = info;
 
-  if ($("backupDays")) $("backupDays").value = String(interval);
-  if ($("lastBackupDisplay")) $("lastBackupDisplay").value = formatLastBackup(last);
+  $("backupDays").value = String(interval);
+  $("lastBackupDisplay").value = formatLastBackup(last);
 }
 function maybeRemindBackup() {
   if (isBackupStale()) {
@@ -512,7 +608,7 @@ function maybeRemindBackup() {
   }
 }
 async function saveBackupReminderFromUI() {
-  const v = Number($("backupDays")?.value);
+  const v = Number($("backupDays").value);
   if (!Number.isFinite(v) || v < 1) return setStatus("Rappel backup invalide (min 1 jour).");
 
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
@@ -525,6 +621,9 @@ async function saveBackupReminderFromUI() {
   setStatus("Rappel backup enregistré ✅");
 }
 
+/* =========================
+   Backup auto (JSON + CSV)
+========================= */
 async function backupNow() {
   const tx = await dbGetAll(STORE_TX);
   const log = await dbGetAll(STORE_LOG);
@@ -537,7 +636,6 @@ async function backupNow() {
     log
   };
 
-  // noms de fichiers
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -550,7 +648,7 @@ async function backupNow() {
   const jsonName = `budget-enfants-${stamp}.json`;
   const csvName  = `budget-enfants-${stamp}.csv`;
 
-  // --- Totaux ---
+  // Totaux
   const totals = { "Lily-Rose": 0, "Victor": 0 };
   for (const r of tx) {
     if (totals[r.child] === undefined) totals[r.child] = 0;
@@ -558,17 +656,13 @@ async function backupNow() {
   }
   const totalGlobal = Object.values(totals).reduce((a,b)=>a+b,0);
 
-  // --- CSV (lisible) ---
-  // CSV avec séparateur ; (souvent mieux sur Excel FR)
-  // On met un “en-tête” de totaux sous forme de lignes commentées (#)
+  // CSV (séparateur ;)
   const csvEscape = (v) => {
     const s = String(v ?? "");
-    // on met en guillemets si ; ou " ou saut de ligne
     if (/[;"\n\r]/.test(s)) return `"${s.replaceAll('"','""')}"`;
     return s;
   };
 
-  // tri du plus récent au plus ancien (date desc puis id desc si dispo)
   const txSorted = [...tx].sort((a,b) => (String(b.date||"").localeCompare(String(a.date||"")) || ((b.id||0)-(a.id||0))));
 
   const lines = [];
@@ -588,10 +682,8 @@ async function backupNow() {
       csvEscape(r.desc || "")
     ].join(";"));
   }
-
   const csvText = lines.join("\n");
 
-  // --- Téléchargements ---
   const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -600,17 +692,12 @@ async function backupNow() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    // délai pour éviter certains bugs mobiles
     setTimeout(() => URL.revokeObjectURL(url), 1500);
   };
 
-  // 1) JSON
   downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), jsonName);
-
-  // 2) CSV lisible
   downloadBlob(new Blob([csvText], { type: "text/csv;charset=utf-8" }), csvName);
 
-  // marquer backup
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   CFG.backup.lastBackupTs = Date.now();
   await saveConfig(CFG);
@@ -621,7 +708,6 @@ async function backupNow() {
 
   setStatus("Backup généré ✅ (JSON + CSV)");
 }
-
 
 /* =========================
    Render
@@ -652,13 +738,16 @@ function renderTotals() {
 function renderTable() {
   const tbody = $("rows");
   tbody.innerHTML = "";
-  const rows = applyFilter(ALL_TX);
 
+  const rows = applyFilter(ALL_TX);
   $("rowsCount").textContent = `${rows.length} ligne(s) affichée(s)`;
+
+  const sum = rows.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+  $("filteredTotal").textContent = fmtMoney(sum);
 
   if (rows.length === 0) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6" class="muted">Aucune ligne.</td>`;
+    tr.innerHTML = `<td colspan="6" class="muted">Aucune ligne (selon le filtre).</td>`;
     tbody.appendChild(tr);
     return;
   }
@@ -671,7 +760,7 @@ function renderTable() {
       <td><span class="pill">${esc(r.child)}</span></td>
       <td>${esc(r.category)}</td>
       <td>${esc(r.desc)}</td>
-      <td class="right ${amtNum < 0 ? "neg" : "pos"}" style="font-weight:900;">${fmtMoney(amtNum)}</td>
+      <td class="right ${amtNum < 0 ? "neg" : "pos"}" style="font-weight:1000;">${fmtMoney(amtNum)}</td>
       <td class="right">
         <button class="secondary smallBtn" data-edit="${r.id}">Modifier</button>
         <button class="danger smallBtn" data-del="${r.id}">Suppr.</button>
@@ -686,7 +775,7 @@ function renderTable() {
       const r = ALL_TX.find(x => x.id === id);
       if (!r) return;
 
-      // si on édite une ligne de Victor, on passe le contexte sur Victor (bouton actif)
+      // bascule contexte enfant automatiquement
       setActiveChild(r.child);
 
       $("dateInput").value = r.date;
@@ -745,7 +834,7 @@ function renderLog() {
       <td class="mono">${esc(fmtTs(l.ts))}</td>
       <td><span class="pill">${esc(l.action)}</span></td>
       <td>${esc(l.details)}</td>
-      <td class="right ${amt < 0 ? "neg" : "pos"}" style="font-weight:900;">${fmtMoney(amt)}</td>
+      <td class="right ${amt < 0 ? "neg" : "pos"}" style="font-weight:1000;">${fmtMoney(amt)}</td>
     `;
     tbody.appendChild(tr);
   }
@@ -776,13 +865,13 @@ async function refreshData() {
    Save / Update transaction
 ========================= */
 function validateEntryFields() {
-  const child = ACTIVE_CHILD; // <-- contexte bouton
+  const child = ACTIVE_CHILD;
   const date = $("dateInput").value || todayISO();
   const category = $("catSelect").value;
   const amtRaw = $("amtInput").value;
   const desc = $("descInput").value.trim();
 
-  if (!child) return { ok:false, msg:"Choisis un enfant." };
+  if (!child) return { ok:false, msg:"Choisis un enfant (boutons en bas)." };
   if (!date) return { ok:false, msg:"Choisis une date." };
   if (!category) return { ok:false, msg:"Choisis une catégorie." };
   if (amtRaw === "" || amtRaw === null) return { ok:false, msg:"Saisis un montant." };
@@ -884,7 +973,7 @@ async function saveSettingsFromUI() {
   if (cats.length === 0) return setStatus("Ajoute au moins 1 catégorie.");
 
   const defaults = {
-    kid: CFG.defaults?.kid || FIXED_KIDS[0],
+    kid: FIXED_KIDS[0],
     cat: cats.includes(CFG.defaults?.cat) ? CFG.defaults.cat : cats[0],
   };
 
@@ -894,7 +983,7 @@ async function saveSettingsFromUI() {
   await saveConfig(CFG);
 
   renderSelectOptions($("catSelect"), CFG.cats, defaults.cat);
-  renderFilterSelect();
+  renderFilterSelects();
 
   await logAction("PARAM", 0, `Catégories=${cats.join(", ")}`);
   await refreshData();
@@ -1024,10 +1113,11 @@ async function initUIAfterConfig() {
 
   renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
 
-  FILTER = { child: "ALL", from: "", to: "" };
-  renderFilterSelect();
+  FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+  renderFilterSelects();
   $("fromDate").value = "";
   $("toDate").value = "";
+  $("filterDesc").value = "";
 
   await loadSettingsUI();
   await refreshData();
@@ -1043,13 +1133,14 @@ async function initUIAfterConfig() {
 }
 
 async function init() {
+  // PWA
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
   CFG = await loadConfig();
 
-  // sécurité backup
+  // sécurité
   CFG.kids = FIXED_KIDS;
   CFG.defaults = CFG.defaults || { kid: FIXED_KIDS[0], cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
   CFG.defaults.kid = FIXED_KIDS[0];
@@ -1060,39 +1151,10 @@ async function init() {
   await initUIAfterConfig();
   resetEntryForm();
 
+  // actions saisie
   $("saveBtn").addEventListener("click", saveOrUpdate);
   $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
   $("cancelEditBtn").addEventListener("click", cancelEdit);
-
-  $("applyFilterBtn").addEventListener("click", () => {
-    FILTER.child = $("filterChild").value || "ALL";
-    FILTER.from = $("fromDate").value || "";
-    FILTER.to = $("toDate").value || "";
-    renderTable();
-  });
-  $("clearFilterBtn").addEventListener("click", () => {
-    FILTER = { child: "ALL", from: "", to: "" };
-    $("filterChild").value = "ALL";
-    $("fromDate").value = "";
-    $("toDate").value = "";
-    renderTable();
-  });
-
-  $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
-  $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
-
-  $("exportBtn").addEventListener("click", exportJSON);
-  $("importBtn").addEventListener("click", () => $("importFile").click());
-  $("importFile").addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    await importJSON(f);
-    e.target.value = "";
-  });
-
-  $("clearLogBtn").addEventListener("click", clearLog);
-  $("exportLogBtn").addEventListener("click", exportLogOnly);
-
   $("descInput").addEventListener("input", updateDescCounter);
 
   $("backupNowBtn").addEventListener("click", backupNow);
@@ -1103,6 +1165,62 @@ async function init() {
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
 
+  // filtres
+  $("applyFilterBtn").addEventListener("click", () => {
+    FILTER.children = getSelectedValues($("filterChild"));
+    FILTER.cats = getSelectedValues($("filterCat"));
+    FILTER.desc = $("filterDesc").value || "";
+    FILTER.from = $("fromDate").value || "";
+    FILTER.to = $("toDate").value || "";
+    renderTable();
+  });
+
+  $("clearFilterBtn").addEventListener("click", () => {
+    FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+
+    setSelectedValues($("filterChild"), []);
+    setSelectedValues($("filterCat"), []);
+    $("filterDesc").value = "";
+    $("fromDate").value = "";
+    $("toDate").value = "";
+
+    renderTable();
+  });
+
+  // export/import
+  $("exportBtn").addEventListener("click", exportJSON);
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    await importJSON(f);
+    e.target.value = "";
+  });
+
+  // journal
+  $("clearLogBtn").addEventListener("click", clearLog);
+  $("exportLogBtn").addEventListener("click", exportLogOnly);
+
+  // paramètres
+  $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
+  $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
+
+  // tri
+  document.querySelectorAll('button[data-sort]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const col = btn.getAttribute("data-sort");
+      if (SORT.col === col) {
+        SORT.dir = (SORT.dir === "asc") ? "desc" : "asc";
+      } else {
+        SORT.col = col;
+        SORT.dir = "asc";
+        if (col === "date") SORT.dir = "desc"; // plus récent d'abord
+      }
+      renderTable();
+    });
+  });
+
+  // enter = save
   $("amtInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
   $("descInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
 }
@@ -1111,4 +1229,3 @@ init();
 </script>
 </body>
 </html>
-
