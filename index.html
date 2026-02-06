@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <title>Budget des enfants</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
+    header { padding: 14px 16px; background: #111827; color: #fff; }
+    header h1 { margin: 0; font-size: 18px; }
+    main { padding: 14px 16px 110px; max-width: 900px; margin: 0 auto; }
+    .card { background:#fff; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); margin-bottom: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display:block; font-size: 12px; color:#374151; margin-bottom: 6px; }
+    select, input, button, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 16px; background:#fff;
+      box-sizing: border-box;
+    }
+    input[type="number"] { text-align: right; }
+    button { cursor: pointer; border: 0; background:#111827; color:#fff; font-weight: 700; }
+    button.secondary { background:#e5e7eb; color:#111827; border: 1px solid #d1d5db; }
+    button.danger { background:#b91c1c; }
+    .actions { display:flex; gap: 10px; flex-wrap: wrap; }
+    .actions > * { flex: 1; min-width: 140px; }
+    .muted { color:#6b7280; font-size: 13px; }
+    .totals { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .totalBox { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
+    .totalBox .name { font-weight: 800; }
+    .totalBox .amt { font-size: 20px; font-weight: 900; margin-top: 4px; }
+    .amt.pos { color:#065f46; }
+    .amt.neg { color:#b91c1c; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #f0f1f4; padding: 10px 6px; font-size: 14px; vertical-align: top; }
+    th { text-align:left; color:#374151; font-size: 12px; }
+    td.right, th.right { text-align:right; }
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#f3f4f6; font-size: 12px; color:#111827; }
+    .smallBtn { padding:8px 10px; border-radius:10px; font-size: 13px; }
+    .toolbar { display:flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+    .toolbar > div { flex: 1; min-width: 160px; }
+    .footerBar {
+      position: fixed; left: 0; right: 0; bottom: 0; background: rgba(246,247,251,.92);
+      border-top: 1px solid #e5e7eb; padding: 10px 16px; backdrop-filter: blur(6px);
+    }
+    .footerBar .wrap { max-width: 900px; margin: 0 auto; display:flex; gap:10px; }
+    .footerBar .wrap button { flex: 1; }
+    details summary { cursor: pointer; font-weight: 800; }
+    textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+    .badgeEdit { display:inline-block; margin-left: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#111827; color:#fff; }
+    .hint { font-size:12px; color:#6b7280; margin-top:6px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <header><h1>Budget des enfants</h1></header>
+
+  <main>
+    <!-- Saisie -->
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:900;">
+          Saisie
+          <span id="editBadge" class="badgeEdit" style="display:none;">MODE MODIFICATION</span>
+        </div>
+        <div class="muted" id="dbInfo"></div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Enfant</label>
+          <select id="childSelect"></select>
+        </div>
+        <div>
+          <label>Date</label>
+          <input id="dateInput" type="date" />
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Catégorie</label>
+          <select id="catSelect"></select>
+        </div>
+        <div>
+          <label>Montant (peut être négatif)</label>
+          <input id="amtInput" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Description (obligatoire, max 100 caractères)</label>
+        <input id="descInput" type="text" maxlength="100" placeholder="Ex: lunch, défi terminé, cadeau..." />
+        <div class="hint"><span id="descCount">0</span>/100</div>
+      </div>
+
+      <div class="actions" style="margin-top:12px;">
+        <button id="saveBtn">Enregistrer</button>
+        <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
+      </div>
+
+      <div class="actions" style="margin-top:10px;">
+        <button id="resetBtn" class="secondary" type="button">Réinitialiser</button>
+        <button id="backupNowBtn" class="secondary" type="button">Backup auto</button>
+        <button id="shareBackupBtn" class="secondary" type="button">Partager backup</button>
+      </div>
+
+      <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
+
+      <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
+    </section>
+
+    <!-- Totaux -->
+    <section class="card">
+      <div class="totals" id="totals"></div>
+      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l’historique complet.</p>
+    </section>
+
+    <!-- Détails -->
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:900;">Détails (lignes)</div>
+        <div class="muted" id="rowsCount"></div>
+      </div>
+
+      <div class="toolbar" style="margin-top:10px;">
+        <div>
+          <label>Filtrer (enfant)</label>
+          <select id="filterChild"></select>
+        </div>
+        <div>
+          <label>Du</label>
+          <input id="fromDate" type="date" />
+        </div>
+        <div>
+          <label>Au</label>
+          <input id="toDate" type="date" />
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:10px;">
+        <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtre</button>
+        <button id="clearFilterBtn" class="secondary" type="button">Effacer filtre</button>
+        <button id="exportBtn" class="secondary" type="button">Exporter JSON</button>
+        <button id="importBtn" class="secondary" type="button">Importer JSON</button>
+      </div>
+      <input id="importFile" type="file" accept="application/json" style="display:none;" />
+
+      <div style="overflow:auto; margin-top: 10px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Enfant</th>
+              <th>Catégorie</th>
+              <th>Description</th>
+              <th class="right">Montant</th>
+              <th class="right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Journal -->
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:900;">Journal (actions)</div>
+        <div class="muted" id="logCount"></div>
+      </div>
+
+      <div class="actions" style="margin-top:10px;">
+        <button id="clearLogBtn" class="danger" type="button">Vider le journal</button>
+        <button id="exportLogBtn" class="secondary" type="button">Exporter journal JSON</button>
+      </div>
+
+      <div style="overflow:auto; margin-top: 10px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Date/Heure</th>
+              <th>Action</th>
+              <th>Détails</th>
+              <th class="right">Montant</th>
+            </tr>
+          </thead>
+          <tbody id="logRows"></tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin:10px 0 0;">Conserve : AJOUT / MODIF / SUPPR / PARAM / IMPORT / EXPORT / BACKUP / SHARE.</p>
+    </section>
+
+    <!-- Paramètres -->
+    <section class="card">
+      <details>
+        <summary>Paramètres (enfants, catégories, backup)</summary>
+
+        <div style="margin-top:12px;">
+          <label>Enfants (un par ligne)</label>
+          <textarea id="kidsCfg"></textarea>
+        </div>
+        <div style="margin-top:10px;">
+          <label>Catégories (une par ligne)</label>
+          <textarea id="catsCfg"></textarea>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="saveCfgBtn" class="secondary" type="button">Enregistrer paramètres</button>
+          <button id="resetCfgBtn" class="secondary" type="button">Remettre par défaut</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0;" />
+
+        <div class="row">
+          <div>
+            <label>Rappel backup (jours)</label>
+            <input id="backupDays" type="number" min="1" step="1" />
+            <div class="hint">Ex: 7 = rappel si aucun backup depuis 7 jours.</div>
+          </div>
+          <div>
+            <label>Dernier backup</label>
+            <input id="lastBackupDisplay" type="text" disabled />
+            <div class="hint">Mis à jour quand tu fais “Backup auto” ou “Partager backup”.</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
+          <button id="backupNowBtn2" class="secondary" type="button">Backup auto</button>
+          <button id="shareBackupBtn2" class="secondary" type="button">Partager backup</button>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <div class="footerBar">
+    <div class="wrap">
+      <button id="quickAddPos">+ Exemple +1.00</button>
+      <button id="quickAddNeg" class="danger">− Exemple -1.00</button>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   IndexedDB (persistance)
+========================= */
+const DB_NAME = "kids_budget_db";
+const DB_VER  = 2;
+
+const STORE_TX  = "tx";
+const STORE_CFG = "cfg";
+const STORE_LOG = "log";
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+
+      if (!db.objectStoreNames.contains(STORE_TX)) {
+        const s = db.createObjectStore(STORE_TX, { keyPath: "id", autoIncrement: true });
+        s.createIndex("byDate", "date");
+        s.createIndex("byChild", "child");
+        s.createIndex("byChildDate", ["child", "date"]);
+      }
+
+      if (!db.objectStoreNames.contains(STORE_CFG)) {
+        db.createObjectStore(STORE_CFG, { keyPath: "key" });
+      }
+
+      if (!db.objectStoreNames.contains(STORE_LOG)) {
+        const l = db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
+        l.createIndex("byTs", "ts");
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbTx(store, mode, fn) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, mode);
+    const s = t.objectStore(store);
+    let out;
+    try { out = fn(s); } catch (e) { reject(e); return; }
+    t.oncomplete = () => resolve(out);
+    t.onerror = () => reject(t.error);
+  });
+}
+
+async function dbPut(store, value) { return dbTx(store, "readwrite", (s) => s.put(value)); }
+async function dbGet(store, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, "readonly");
+    const req = t.objectStore(store).get(key);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbGetAll(store) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, "readonly");
+    const req = t.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbAdd(store, obj) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, "readwrite");
+    const req = t.objectStore(store).add(obj);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function dbDelete(store, id) { return dbTx(store, "readwrite", (s) => s.delete(id)); }
+async function dbClear(store) { return dbTx(store, "readwrite", (s) => s.clear()); }
+
+/* =========================
+   Config par défaut
+========================= */
+const DEFAULT_KIDS = ["Lily-Rose", "Victor"];
+const DEFAULT_CATS = ["École", "Bon action", "Défi", "Cadeau", "Dépense"];
+
+async function loadConfig() {
+  const cfg = await dbGet(STORE_CFG, "settings");
+  if (cfg?.value?.kids?.length && cfg?.value?.cats?.length) return cfg.value;
+
+  const fresh = {
+    kids: DEFAULT_KIDS,
+    cats: DEFAULT_CATS,
+    defaults: { kid: DEFAULT_KIDS[0], cat: DEFAULT_CATS[0] },
+    backup: { intervalDays: 7, lastBackupTs: null }
+  };
+  await dbPut(STORE_CFG, { key:"settings", value:fresh });
+  return fresh;
+}
+async function saveConfig(newCfg) { await dbPut(STORE_CFG, { key:"settings", value:newCfg }); }
+
+/* =========================
+   Journal (historique actions)
+========================= */
+function nowISO() { return new Date().toISOString(); }
+function fmtTs(ts) {
+  const d = new Date(ts);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mi = String(d.getMinutes()).padStart(2,"0");
+  const ss = String(d.getSeconds()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
+}
+async function logAction(action, amount, details) {
+  const entry = {
+    ts: Date.now(),
+    action: String(action || ""),
+    amount: Number.isFinite(Number(amount)) ? Number(amount) : 0,
+    details: String(details || "")
+  };
+  await dbAdd(STORE_LOG, entry);
+}
+
+/* =========================
+   UI helpers
+========================= */
+const $ = (id) => document.getElementById(id);
+
+function todayISO() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function fmtMoney(n) {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  return sign + abs.toFixed(2) + " $";
+}
+function setStatus(msg) { $("statusMsg").textContent = msg || ""; }
+function normalizeLines(text) { return text.split("\n").map(s => s.trim()).filter(s => s.length > 0); }
+function esc(s) {
+  return String(s || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/* =========================
+   State
+========================= */
+let CFG = null;
+let ALL_TX = [];
+let ALL_LOG = [];
+let FILTER = { child: "ALL", from: "", to: "" };
+let EDIT_ID = null;
+
+function renderSelectOptions(selectEl, items, selected) {
+  selectEl.innerHTML = "";
+  for (const it of items) {
+    const opt = document.createElement("option");
+    opt.value = it;
+    opt.textContent = it;
+    if (it === selected) opt.selected = true;
+    selectEl.appendChild(opt);
+  }
+}
+
+function renderFilterSelect() {
+  const sel = $("filterChild");
+  sel.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "ALL";
+  optAll.textContent = "Tous";
+  sel.appendChild(optAll);
+  for (const kid of CFG.kids) {
+    const opt = document.createElement("option");
+    opt.value = kid;
+    opt.textContent = kid;
+    sel.appendChild(opt);
+  }
+  sel.value = FILTER.child;
+}
+
+function applyFilter(txList) {
+  let rows = [...txList];
+  if (FILTER.child && FILTER.child !== "ALL") rows = rows.filter(r => r.child === FILTER.child);
+  if (FILTER.from) rows = rows.filter(r => r.date >= FILTER.from);
+  if (FILTER.to) rows = rows.filter(r => r.date <= FILTER.to);
+  rows.sort((a,b) => (b.date.localeCompare(a.date) || (b.id - a.id)));
+  return rows;
+}
+
+function setEditMode(on, id=null) {
+  EDIT_ID = on ? Number(id) : null;
+  $("editBadge").style.display = on ? "inline-block" : "none";
+  $("cancelEditBtn").style.display = on ? "inline-block" : "none";
+  $("saveBtn").textContent = on ? "Enregistrer modification" : "Enregistrer";
+}
+
+function updateDescCounter() {
+  $("descCount").textContent = String($("descInput").value.length);
+}
+
+/* =========================
+   Backup (download) + Share (Web Share)
+========================= */
+function daysBetween(tsThen, tsNow) {
+  const ms = Math.max(0, tsNow - tsThen);
+  return ms / (1000 * 60 * 60 * 24);
+}
+function formatLastBackup(ts) {
+  if (!ts) return "Jamais";
+  return fmtTs(ts);
+}
+function isBackupStale() {
+  const interval = Number(CFG?.backup?.intervalDays || 7);
+  const last = CFG?.backup?.lastBackupTs;
+  if (!last) return true;
+  return daysBetween(Number(last), Date.now()) >= interval;
+}
+async function updateBackupUI() {
+  const interval = Number(CFG?.backup?.intervalDays || 7);
+  const last = CFG?.backup?.lastBackupTs;
+
+  const info = `Backup: ${formatLastBackup(last)} • Rappel: ${interval} jour(s)` + (isBackupStale() ? " ⚠️" : "");
+  if ($("backupInfo")) $("backupInfo").textContent = info;
+
+  if ($("backupDays")) $("backupDays").value = String(interval);
+  if ($("lastBackupDisplay")) $("lastBackupDisplay").value = formatLastBackup(last);
+}
+function maybeRemindBackup() {
+  if (isBackupStale()) {
+    const interval = Number(CFG?.backup?.intervalDays || 7);
+    setStatus(`⚠️ Pense à faire un backup (aucun backup depuis ≥ ${interval} jour(s)).`);
+  }
+}
+async function saveBackupReminderFromUI() {
+  const v = Number($("backupDays")?.value);
+  if (!Number.isFinite(v) || v < 1) return setStatus("Rappel backup invalide (min 1 jour).");
+
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  CFG.backup.intervalDays = Math.floor(v);
+
+  await saveConfig(CFG);
+  await logAction("PARAM", 0, `Backup reminder = ${CFG.backup.intervalDays} jour(s)`);
+  await refreshData();
+  await updateBackupUI();
+  setStatus("Rappel backup enregistré ✅");
+}
+
+function makeBackupFilename() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  const ss = String(d.getSeconds()).padStart(2, "0");
+  return `budget-enfants-${yyyy}${mm}${dd}-${hh}${mi}${ss}.json`;
+}
+
+async function buildBackupPayload() {
+  return {
+    version: 1,
+    exportedAt: nowISO(),
+    cfg: CFG,
+    tx: await dbGetAll(STORE_TX),
+    log: await dbGetAll(STORE_LOG)
+  };
+}
+
+async function markBackupDone(filename, actionTag) {
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  CFG.backup.lastBackupTs = Date.now();
+  await saveConfig(CFG);
+
+  await logAction(actionTag, 0, `${actionTag} fichier: ${filename}`);
+  await refreshData();
+  await updateBackupUI();
+}
+
+async function backupNow() {
+  const payload = await buildBackupPayload();
+  const filename = makeBackupFilename();
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  await markBackupDone(filename, "BACKUP");
+  setStatus("Backup généré ✅ (enregistre-le dans OneDrive/Samsung Cloud via Téléchargements/Partager)");
+}
+
+async function shareBackupNow() {
+  // Doit être déclenché par un clic (user gesture)
+  const payload = await buildBackupPayload();
+  const filename = makeBackupFilename();
+  const file = new File([JSON.stringify(payload, null, 2)], filename, { type: "application/json" });
+
+  const canShareFiles = !!navigator.share && (!!navigator.canShare ? navigator.canShare({ files: [file] }) : true);
+
+  if (!canShareFiles) {
+    // fallback fiable
+    await backupNow();
+    setStatus("Partage fichier non supporté ici — backup téléchargé ✅ (partage-le depuis Téléchargements).");
+    return;
+  }
+
+  try {
+    await navigator.share({
+      title: "Backup Budget des enfants",
+      text: "Backup JSON (transactions + journal).",
+      files: [file]
+    });
+
+    await markBackupDone(filename, "SHARE");
+    setStatus("Backup partagé ✅");
+  } catch (e) {
+    // si l’utilisateur annule, on ne considère pas ça comme une erreur “hard”
+    setStatus("Partage annulé.");
+  }
+}
+
+/* =========================
+   Render
+========================= */
+function renderTotals() {
+  const totals = {};
+  for (const kid of CFG.kids) totals[kid] = 0;
+
+  for (const r of ALL_TX) {
+    if (totals[r.child] === undefined) totals[r.child] = 0;
+    totals[r.child] += Number(r.amount || 0);
+  }
+
+  const wrap = $("totals");
+  wrap.innerHTML = "";
+  for (const kid of CFG.kids) {
+    const amt = totals[kid] || 0;
+    const box = document.createElement("div");
+    box.className = "totalBox";
+    box.innerHTML = `
+      <div class="name">${esc(kid)}</div>
+      <div class="amt ${amt < 0 ? "neg" : "pos"}">${fmtMoney(amt)}</div>
+    `;
+    wrap.appendChild(box);
+  }
+}
+
+function renderTable() {
+  const tbody = $("rows");
+  tbody.innerHTML = "";
+  const rows = applyFilter(ALL_TX);
+
+  $("rowsCount").textContent = `${rows.length} ligne(s) affichée(s)`;
+
+  if (rows.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" class="muted">Aucune ligne.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const r of rows) {
+    const amtNum = Number(r.amount || 0);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${esc(r.date)}</td>
+      <td><span class="pill">${esc(r.child)}</span></td>
+      <td>${esc(r.category)}</td>
+      <td>${esc(r.desc)}</td>
+      <td class="right ${amtNum < 0 ? "neg" : "pos"}" style="font-weight:900;">${fmtMoney(amtNum)}</td>
+      <td class="right">
+        <button class="secondary smallBtn" data-edit="${r.id}">Modifier</button>
+        <button class="danger smallBtn" data-del="${r.id}">Suppr.</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  tbody.querySelectorAll("button[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.getAttribute("data-edit"));
+      const r = ALL_TX.find(x => x.id === id);
+      if (!r) return;
+
+      $("childSelect").value = r.child;
+      $("dateInput").value = r.date;
+      $("catSelect").value = r.category;
+      $("amtInput").value = String(Number(r.amount).toFixed(2));
+      $("descInput").value = r.desc || "";
+      updateDescCounter();
+
+      setEditMode(true, id);
+      setStatus("Modification: ajuste les champs puis enregistre.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+
+  tbody.querySelectorAll("button[data-del]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = Number(btn.getAttribute("data-del"));
+      const r = ALL_TX.find(x => x.id === id);
+      if (!r) return;
+
+      if (!confirm(`Supprimer cette ligne ?\n\n${r.date} • ${r.child} • ${r.category}\n${r.desc}\n${fmtMoney(Number(r.amount))}`)) return;
+
+      await dbDelete(STORE_TX, id);
+      await logAction("SUPPR", r.amount, `id=${id} | ${r.child} | ${r.date} | ${r.category} | ${r.desc}`);
+      await refreshData();
+
+      if (EDIT_ID === id) {
+        setEditMode(false);
+        resetEntryForm();
+      }
+
+      maybeRemindBackup();
+      setStatus("Ligne supprimée ✅");
+    });
+  });
+}
+
+function renderLog() {
+  const tbody = $("logRows");
+  tbody.innerHTML = "";
+
+  const logs = [...ALL_LOG].sort((a,b) => (b.ts - a.ts));
+  $("logCount").textContent = `${logs.length} action(s)`;
+
+  if (logs.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="muted">Aucune action.</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const l of logs.slice(0, 300)) {
+    const amt = Number(l.amount || 0);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="mono">${esc(fmtTs(l.ts))}</td>
+      <td><span class="pill">${esc(l.action)}</span></td>
+      <td>${esc(l.details)}</td>
+      <td class="right ${amt < 0 ? "neg" : "pos"}" style="font-weight:900;">${fmtMoney(amt)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  if (logs.length > 300) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" class="muted">Affichage limité aux 300 dernières actions.</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+/* =========================
+   Data refresh
+========================= */
+async function refreshData() {
+  ALL_TX = await dbGetAll(STORE_TX);
+  ALL_LOG = await dbGetAll(STORE_LOG);
+
+  renderTotals();
+  renderTable();
+  renderLog();
+
+  $("dbInfo").textContent = `Transactions: ${ALL_TX.length} • Journal: ${ALL_LOG.length}`;
+  await updateBackupUI();
+}
+
+/* =========================
+   Save / Update transaction
+========================= */
+function validateEntryFields() {
+  const child = $("childSelect").value;
+  const date = $("dateInput").value || todayISO();
+  const category = $("catSelect").value;
+  const amtRaw = $("amtInput").value;
+  const desc = $("descInput").value.trim();
+
+  if (!child) return { ok:false, msg:"Choisis un enfant." };
+  if (!date) return { ok:false, msg:"Choisis une date." };
+  if (!category) return { ok:false, msg:"Choisis une catégorie." };
+  if (amtRaw === "" || amtRaw === null) return { ok:false, msg:"Saisis un montant." };
+
+  const amount = Number(amtRaw);
+  if (!Number.isFinite(amount)) return { ok:false, msg:"Montant invalide." };
+
+  if (!desc) return { ok:false, msg:"La description est obligatoire (max 100 caractères)." };
+  if (desc.length > 100) return { ok:false, msg:"Description trop longue (max 100)." };
+
+  return { ok:true, child, date, category, amount, desc };
+}
+
+async function saveOrUpdate() {
+  const v = validateEntryFields();
+  if (!v.ok) return setStatus(v.msg);
+
+  if (EDIT_ID == null) {
+    const id = await dbAdd(STORE_TX, {
+      child: v.child,
+      date: v.date,
+      category: v.category,
+      amount: v.amount,
+      desc: v.desc,
+      createdAt: Date.now(),
+      updatedAt: null
+    });
+    await logAction("AJOUT", v.amount, `id=${id} | ${v.child} | ${v.date} | ${v.category} | ${v.desc}`);
+    await refreshData();
+
+    $("amtInput").value = "";
+    $("descInput").value = "";
+    updateDescCounter();
+
+    setStatus("Enregistré ✅");
+    maybeRemindBackup();
+    return;
+  }
+
+  const id = Number(EDIT_ID);
+  const old = ALL_TX.find(x => x.id === id);
+  if (!old) {
+    setEditMode(false);
+    return setStatus("La ligne à modifier n’existe plus.");
+  }
+
+  const updated = {
+    ...old,
+    child: v.child,
+    date: v.date,
+    category: v.category,
+    amount: v.amount,
+    desc: v.desc,
+    updatedAt: Date.now()
+  };
+  await dbPut(STORE_TX, updated);
+
+  const delta = Number(updated.amount) - Number(old.amount || 0);
+  await logAction(
+    "MODIF",
+    updated.amount,
+    `id=${id} | ancien=${fmtMoney(Number(old.amount||0))} | nouveau=${fmtMoney(updated.amount)} | delta=${fmtMoney(delta)} | ${updated.child} | ${updated.date} | ${updated.category} | ${updated.desc}`
+  );
+
+  setEditMode(false);
+  await refreshData();
+  resetEntryForm();
+
+  setStatus("Modification enregistrée ✅");
+  maybeRemindBackup();
+}
+
+/* =========================
+   Reset / cancel edit
+========================= */
+function resetEntryForm() {
+  $("dateInput").value = todayISO();
+  $("childSelect").value = CFG.defaults.kid || CFG.kids[0];
+  $("catSelect").value = CFG.defaults.cat || CFG.cats[0];
+  $("amtInput").value = "";
+  $("descInput").value = "";
+  updateDescCounter();
+  setStatus("");
+}
+function cancelEdit() {
+  setEditMode(false);
+  resetEntryForm();
+  setStatus("Modification annulée.");
+}
+
+/* =========================
+   Settings + Import/Export
+========================= */
+async function loadSettingsUI() {
+  $("kidsCfg").value = CFG.kids.join("\n");
+  $("catsCfg").value = CFG.cats.join("\n");
+}
+
+async function saveSettingsFromUI() {
+  const kids = normalizeLines($("kidsCfg").value);
+  const cats = normalizeLines($("catsCfg").value);
+  if (kids.length === 0) return setStatus("Ajoute au moins 1 enfant.");
+  if (cats.length === 0) return setStatus("Ajoute au moins 1 catégorie.");
+
+  const defaults = {
+    kid: kids.includes(CFG.defaults?.kid) ? CFG.defaults.kid : kids[0],
+    cat: cats.includes(CFG.defaults?.cat) ? CFG.defaults.cat : cats[0],
+  };
+
+  const backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+
+  CFG = { kids, cats, defaults, backup };
+  await saveConfig(CFG);
+
+  renderSelectOptions($("childSelect"), CFG.kids, defaults.kid);
+  renderSelectOptions($("catSelect"), CFG.cats, defaults.cat);
+  renderFilterSelect();
+
+  await logAction("PARAM", 0, `Paramètres | enfants=${kids.join(", ")} | catégories=${cats.join(", ")}`);
+  await refreshData();
+  setStatus("Paramètres enregistrés ✅");
+}
+
+async function resetSettingsToDefault() {
+  CFG = {
+    kids: DEFAULT_KIDS,
+    cats: DEFAULT_CATS,
+    defaults: { kid: DEFAULT_KIDS[0], cat: DEFAULT_CATS[0] },
+    backup: CFG?.backup || { intervalDays: 7, lastBackupTs: null }
+  };
+  await saveConfig(CFG);
+  await logAction("PARAM", 0, "Paramètres remis par défaut");
+  await initUIAfterConfig();
+  setStatus("Paramètres remis par défaut ✅");
+}
+
+async function exportJSON() {
+  const payload = await buildBackupPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `budget-enfants-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  await logAction("EXPORT", 0, "Export JSON complet (transactions + journal)");
+  await refreshData();
+  setStatus("Export prêt ✅");
+}
+
+async function exportLogOnly() {
+  const payload = { exportedAt: nowISO(), log: await dbGetAll(STORE_LOG) };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `journal-budget-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  setStatus("Export journal prêt ✅");
+}
+
+async function importJSON(file) {
+  const text = await file.text();
+  let payload;
+  try { payload = JSON.parse(text); } catch { return setStatus("Fichier JSON invalide."); }
+  if (!payload || !Array.isArray(payload.tx) || !payload.cfg) return setStatus("JSON non reconnu.");
+
+  CFG = payload.cfg;
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
+  if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+
+  await saveConfig(CFG);
+  await dbClear(STORE_TX);
+  await dbClear(STORE_LOG);
+
+  for (const r of payload.tx) {
+    const safe = {
+      child: String(r.child || ""),
+      date: String(r.date || ""),
+      category: String(r.category || ""),
+      amount: Number(r.amount || 0),
+      desc: String(r.desc || "").slice(0,100),
+      createdAt: Number(r.createdAt || Date.now()),
+      updatedAt: r.updatedAt ? Number(r.updatedAt) : null
+    };
+    if (!safe.child || !safe.date || !safe.category || !Number.isFinite(safe.amount) || !safe.desc) continue;
+    await dbAdd(STORE_TX, safe);
+  }
+
+  if (Array.isArray(payload.log)) {
+    for (const l of payload.log) {
+      const safeL = {
+        ts: Number(l.ts || Date.now()),
+        action: String(l.action || "IMPORT"),
+        amount: Number(l.amount || 0),
+        details: String(l.details || "")
+      };
+      await dbAdd(STORE_LOG, safeL);
+    }
+  }
+
+  await logAction("IMPORT", 0, "Import JSON complet (transactions + journal)");
+  await initUIAfterConfig();
+  setStatus("Import terminé ✅");
+}
+
+/* =========================
+   Log actions UI
+========================= */
+async function clearLog() {
+  if (!confirm("Vider le journal des actions ?")) return;
+  await dbClear(STORE_LOG);
+  await refreshData();
+  setStatus("Journal vidé ✅");
+}
+
+/* =========================
+   Init
+========================= */
+async function initUIAfterConfig() {
+  $("dateInput").value = todayISO();
+
+  renderSelectOptions($("childSelect"), CFG.kids, CFG.defaults.kid || CFG.kids[0]);
+  renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
+
+  FILTER = { child: "ALL", from: "", to: "" };
+  renderFilterSelect();
+  $("fromDate").value = "";
+  $("toDate").value = "";
+
+  await loadSettingsUI();
+  await refreshData();
+
+  setEditMode(false);
+  updateDescCounter();
+
+  await updateBackupUI();
+  maybeRemindBackup();
+}
+
+async function init() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+
+  CFG = await loadConfig();
+
+  // sécurité backup
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
+  if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+
+  await initUIAfterConfig();
+  resetEntryForm();
+
+  $("saveBtn").addEventListener("click", saveOrUpdate);
+  $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
+  $("cancelEditBtn").addEventListener("click", cancelEdit);
+
+  $("applyFilterBtn").addEventListener("click", () => {
+    FILTER.child = $("filterChild").value || "ALL";
+    FILTER.from = $("fromDate").value || "";
+    FILTER.to = $("toDate").value || "";
+    renderTable();
+  });
+  $("clearFilterBtn").addEventListener("click", () => {
+    FILTER = { child: "ALL", from: "", to: "" };
+    $("filterChild").value = "ALL";
+    $("fromDate").value = "";
+    $("toDate").value = "";
+    renderTable();
+  });
+
+  $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
+  $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
+
+  $("exportBtn").addEventListener("click", exportJSON);
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    await importJSON(f);
+    e.target.value = "";
+  });
+
+  $("clearLogBtn").addEventListener("click", clearLog);
+  $("exportLogBtn").addEventListener("click", exportLogOnly);
+
+  $("descInput").addEventListener("input", updateDescCounter);
+
+  $("backupNowBtn").addEventListener("click", backupNow);
+  $("backupNowBtn2").addEventListener("click", backupNow);
+  $("shareBackupBtn").addEventListener("click", shareBackupNow);
+  $("shareBackupBtn2").addEventListener("click", shareBackupNow);
+
+  $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
+
+  $("quickAddPos").addEventListener("click", () => {
+    $("amtInput").focus();
+    if ($("amtInput").value.trim() === "") $("amtInput").value = "1.00";
+  });
+  $("quickAddNeg").addEventListener("click", () => {
+    $("amtInput").focus();
+    if ($("amtInput").value.trim() === "") $("amtInput").value = "-1.00";
+  });
+
+  $("amtInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
+  $("descInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
+}
+
+init();
+</script>
+</body>
+</html>
