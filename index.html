@@ -88,6 +88,15 @@
       background: #111827;
       color: #ffffff;
     }
+    
+    /* Style pour les champs école */
+    .school-fields {
+      display: none;
+      margin-top: 10px;
+    }
+    .school-fields.visible {
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -112,6 +121,25 @@
         <div>
           <label>Catégorie</label>
           <select id="catSelect"></select>
+        </div>
+      </div>
+
+      <!-- Champs spécifiques pour la catégorie "école" -->
+      <div id="schoolFields" class="school-fields">
+        <div class="row">
+          <div>
+            <label>Note (999)</label>
+            <input id="noteInput" type="number" step="1" min="0" max="100" placeholder="0" />
+          </div>
+          <div>
+            <label>Moyenne (999)</label>
+            <input id="moyenneInput" type="number" step="1" min="0" max="100" placeholder="0" />
+          </div>
+        </div>
+        <div class="hint" style="margin-top:6px;">
+          Le montant sera calculé automatiquement selon les règles : 
+          • Note ≥ 80 : 1$ par point au-dessus de la moyenne (max 15$)
+          • Note = 100 : 20$ automatiquement
         </div>
       </div>
 
@@ -144,7 +172,7 @@
     <!-- Totaux -->
     <section class="card">
       <div class="totals" id="totals"></div>
-      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l’historique complet.</p>
+      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l'historique complet.</p>
     </section>
 
     <!-- Paramètres (AU-DESSUS de l'historique transactions) -->
@@ -173,7 +201,7 @@
           <div>
             <label>Dernier backup</label>
             <input id="lastBackupDisplay" type="text" disabled />
-            <div class="hint">Mis à jour quand tu fais “Backup auto”.</div>
+            <div class="hint">Mis à jour quand tu fais "Backup auto".</div>
           </div>
         </div>
 
@@ -213,796 +241,746 @@
           </div>
 
           <div>
-            <label>Du</label>
+            <label>Date début</label>
             <input id="fromDate" type="date" />
           </div>
 
           <div>
-            <label>Au</label>
+            <label>Date fin</label>
             <input id="toDate" type="date" />
           </div>
         </div>
 
         <div class="actions" style="margin-top:10px;">
-          <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtre</button>
-          <button id="clearFilterBtn" class="secondary" type="button">Effacer filtre</button>
-          <button id="exportBtn" class="secondary" type="button">Exporter JSON</button>
-          <button id="importBtn" class="secondary" type="button">Importer JSON</button>
+          <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtres</button>
+          <button id="clearFilterBtn" class="secondary" type="button">Effacer filtres</button>
         </div>
-        <input id="importFile" type="file" accept="application/json" style="display:none;" />
 
-        <div style="overflow:auto; margin-top: 10px;">
+        <div style="overflow-x:auto; margin-top:10px;">
           <table>
             <thead>
               <tr>
-                <th><button class="secondary smallBtn" type="button" data-sort="date">Date</button></th>
-                <th><button class="secondary smallBtn" type="button" data-sort="child">Enfant</button></th>
-                <th><button class="secondary smallBtn" type="button" data-sort="category">Catégorie</button></th>
-                <th><button class="secondary smallBtn" type="button" data-sort="desc">Description</button></th>
-                <th class="right"><button class="secondary smallBtn" type="button" data-sort="amount">Montant</button></th>
-                <th class="right">Actions</th>
+                <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
+                <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
+                <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
+                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
+                <th>Description</th>
+                <th style="width:160px;">Actions</th>
               </tr>
             </thead>
-            <tbody id="rows"></tbody>
+            <tbody id="txBody"></tbody>
           </table>
         </div>
-        <p class="muted" style="margin:10px 0 0;">Tri: touche l’en-tête (re-touche = inverse asc/desc).</p>
       </details>
     </section>
 
-    <!-- Journal (FERMÉ par défaut) -->
+    <!-- Journal des actions (AU-DESSOUS de l'historique) -->
     <section class="card">
-      <details id="logDetails">
-        <summary>Journal (actions)</summary>
+      <details>
+        <summary>Journal des actions</summary>
 
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <div class="muted" id="logCount"></div>
+        <div style="margin-top:10px; overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th class="right">Montant</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
         </div>
 
         <div class="actions" style="margin-top:10px;">
-          <button id="clearLogBtn" class="danger" type="button">Vider le journal</button>
-          <button id="exportLogBtn" class="secondary" type="button">Exporter journal JSON</button>
+          <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
+          <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
         </div>
-
-        <div style="overflow:auto; margin-top: 10px;">
-          <table>
-            <thead>
-              <tr>
-                <th>Date/Heure</th>
-                <th>Action</th>
-                <th>Détails</th>
-                <th class="right">Montant</th>
-              </tr>
-            </thead>
-            <tbody id="logRows"></tbody>
-          </table>
-        </div>
-        <p class="muted" style="margin:10px 0 0;">Conserve : AJOUT / MODIF / SUPPR / PARAM / IMPORT / EXPORT / BACKUP.</p>
       </details>
+    </section>
+
+    <!-- Import/Export final -->
+    <section class="card">
+      <div class="actions">
+        <button id="exportBtn" class="secondary" type="button">Export complet (JSON)</button>
+        <button id="importBtn" class="secondary" type="button">Import JSON</button>
+      </div>
+      <input id="importFile" type="file" accept="application/json" style="display:none;" />
     </section>
   </main>
 
-  <!-- Barre enfant fixe -->
-  <div class="kidBar" role="navigation" aria-label="Choix enfant">
+  <!-- Barre enfant fixe (bas de page) -->
+  <div class="kidBar">
     <button id="kidLily" class="kidBtn">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn">Victor</button>
   </div>
 
 <script>
-/* =========================
-   IndexedDB (persistance)
-========================= */
-const DB_NAME = "kids_budget_db";
-const DB_VER  = 2;
+const FIXED_KIDS = ["Lily-Rose", "Victor"];
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Argent dépensé","Gâterie","Éducation financière"];
+const DB_NAME = "BudgetEnfantsDB_v2";
+const DB_VERSION = 2;
+const STORE_CONFIG = "config";
+const STORE_TX = "transactions";
+const STORE_LOG = "log";
 
-const STORE_TX  = "tx";   // transactions
-const STORE_CFG = "cfg";  // settings
-const STORE_LOG = "log";  // journal
+let db = null;
+let CFG = { kids: FIXED_KIDS, cats: DEFAULT_CATS, defaults: { kid: "Lily-Rose", cat: "Tâches ménagères" } };
+let ALL_DATA = [];
+let ACTIVE_CHILD = "Lily-Rose";
+let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+let SORT = { col: "date", dir: "desc" };
+let EDIT_MODE = false;
+let EDIT_ID = null;
 
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-
-      if (!db.objectStoreNames.contains(STORE_TX)) {
-        const s = db.createObjectStore(STORE_TX, { keyPath: "id", autoIncrement: true });
-        s.createIndex("byDate", "date");
-        s.createIndex("byChild", "child");
-        s.createIndex("byChildDate", ["child", "date"]);
-      }
-
-      if (!db.objectStoreNames.contains(STORE_CFG)) {
-        db.createObjectStore(STORE_CFG, { keyPath: "key" });
-      }
-
-      if (!db.objectStoreNames.contains(STORE_LOG)) {
-        const l = db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
-        l.createIndex("byTs", "ts");
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbTx(store, mode, fn) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction(store, mode);
-    const s = t.objectStore(store);
-    let out;
-    try { out = fn(s); } catch (e) { reject(e); return; }
-    t.oncomplete = () => resolve(out);
-    t.onerror = () => reject(t.error);
-  });
-}
-
-async function dbPut(store, value) { return dbTx(store, "readwrite", (s) => s.put(value)); }
-async function dbGet(store, key) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction(store, "readonly");
-    const req = t.objectStore(store).get(key);
-    req.onsuccess = () => resolve(req.result || null);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function dbGetAll(store) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction(store, "readonly");
-    const req = t.objectStore(store).getAll();
-    req.onsuccess = () => resolve(req.result || []);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function dbAdd(store, obj) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const t = db.transaction(store, "readwrite");
-    const req = t.objectStore(store).add(obj);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-async function dbDelete(store, id) { return dbTx(store, "readwrite", (s) => s.delete(id)); }
-async function dbClear(store) { return dbTx(store, "readwrite", (s) => s.clear()); }
-
-/* =========================
-   Journal (actions)
-========================= */
-function nowISO() { return new Date().toISOString(); }
-function fmtTs(ts) {
-  const d = new Date(ts);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
-  const hh = String(d.getHours()).padStart(2,"0");
-  const mi = String(d.getMinutes()).padStart(2,"0");
-  const ss = String(d.getSeconds()).padStart(2,"0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}:${ss}`;
-}
-async function logAction(action, amount, details) {
-  const entry = {
-    ts: Date.now(),
-    action: String(action || ""),
-    amount: Number.isFinite(Number(amount)) ? Number(amount) : 0,
-    details: String(details || "")
-  };
-  await dbAdd(STORE_LOG, entry);
-}
-
-/* =========================
-   UI helpers
-========================= */
 const $ = (id) => document.getElementById(id);
 
+function nowISO() {
+  return new Date().toISOString();
+}
 function todayISO() {
   const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function formatDateHuman(isoDate) {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const pad = (n) => String(n).padStart(2, "0");
   const yyyy = d.getFullYear();
-  const mm = String(d.getMonth()+1).padStart(2,"0");
-  const dd = String(d.getDate()).padStart(2,"0");
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
   return `${yyyy}-${mm}-${dd}`;
 }
-function fmtMoney(n) {
-  const sign = n < 0 ? "-" : "";
-  const abs = Math.abs(n);
-  return sign + abs.toFixed(2) + " $";
+function formatTS(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
-function setStatus(msg) { $("statusMsg").textContent = msg || ""; }
-function normalizeLines(text) { return text.split("\n").map(s => s.trim()).filter(s => s.length > 0); }
-function esc(s) {
-  return String(s || "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;");
+
+/* =========================
+   IndexedDB
+========================= */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_CONFIG)) {
+        db.createObjectStore(STORE_CONFIG, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORE_TX)) {
+        const txStore = db.createObjectStore(STORE_TX, { keyPath: "id", autoIncrement: true });
+        txStore.createIndex("child", "child", { unique: false });
+        txStore.createIndex("date", "date", { unique: false });
+        txStore.createIndex("category", "category", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_LOG)) {
+        db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
+      }
+    };
+  });
+}
+
+async function dbGet(store, key) {
+  const tx = db.transaction(store, "readonly");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbPut(store, obj) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.put(obj);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbAdd(store, obj) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.add(obj);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(store, id) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll(store) {
+  const tx = db.transaction(store, "readonly");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbClear(store) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
 }
 
 /* =========================
    Config
 ========================= */
-const FIXED_KIDS = ["Lily-Rose", "Victor"];
-const DEFAULT_CATS = ["École", "Bon action", "Défi", "Cadeau", "Dépense"];
-
 async function loadConfig() {
-  const cfg = await dbGet(STORE_CFG, "settings");
-  if (cfg?.value?.cats?.length) return cfg.value;
-
-  const fresh = {
+  const obj = await dbGet(STORE_CONFIG, "main");
+  if (obj && obj.data) return obj.data;
+  return {
     kids: FIXED_KIDS,
     cats: DEFAULT_CATS,
     defaults: { kid: FIXED_KIDS[0], cat: DEFAULT_CATS[0] },
     backup: { intervalDays: 7, lastBackupTs: null }
   };
-  await dbPut(STORE_CFG, { key:"settings", value:fresh });
-  return fresh;
 }
-async function saveConfig(newCfg) { await dbPut(STORE_CFG, { key:"settings", value:newCfg }); }
 
-/* =========================
-   State
-========================= */
-let CFG = null;
-let ALL_TX = [];
-let ALL_LOG = [];
-
-let ACTIVE_CHILD = "Lily-Rose";
-let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
-let SORT = { col: "date", dir: "desc" };
-
-let EDIT_ID = null;
-
-/* =========================
-   Contexte enfant (boutons)
-========================= */
-function setActiveChild(name) {
-  ACTIVE_CHILD = name;
-  $("kidLily").classList.toggle("active", ACTIVE_CHILD === "Lily-Rose");
-  $("kidVictor").classList.toggle("active", ACTIVE_CHILD === "Victor");
+async function saveConfig(cfg) {
+  await dbPut(STORE_CONFIG, { id: "main", data: cfg });
 }
 
 /* =========================
-   Select helpers (multi)
+   Logging actions
 ========================= */
-function getSelectedValues(selectEl) {
-  return Array.from(selectEl.selectedOptions).map(o => o.value);
-}
-function setSelectedValues(selectEl, values) {
-  const set = new Set(values || []);
-  Array.from(selectEl.options).forEach(o => { o.selected = set.has(o.value); });
-}
-function renderSelectOptions(selectEl, items, selected) {
-  selectEl.innerHTML = "";
-  for (const it of items) {
-    const opt = document.createElement("option");
-    opt.value = it;
-    opt.textContent = it;
-    if (it === selected) opt.selected = true;
-    selectEl.appendChild(opt);
-  }
-}
-function renderFilterSelects() {
-  const selChild = $("filterChild");
-  selChild.innerHTML = "";
-  for (const kid of CFG.kids) {
-    const opt = document.createElement("option");
-    opt.value = kid;
-    opt.textContent = kid;
-    selChild.appendChild(opt);
-  }
-
-  const selCat = $("filterCat");
-  selCat.innerHTML = "";
-  for (const c of CFG.cats) {
-    const opt = document.createElement("option");
-    opt.value = c;
-    opt.textContent = c;
-    selCat.appendChild(opt);
-  }
-
-  setSelectedValues(selChild, FILTER.children);
-  setSelectedValues(selCat, FILTER.cats);
-  $("filterDesc").value = FILTER.desc || "";
+async function logAction(actionName, amount, details) {
+  const entry = {
+    ts: Date.now(),
+    action: actionName,
+    amount: amount,
+    details: details || ""
+  };
+  await dbAdd(STORE_LOG, entry);
 }
 
 /* =========================
-   Tri + filtre
+   UI Helpers
 ========================= */
-function compareRows(a, b, col, dir) {
-  const sign = (dir === "asc") ? 1 : -1;
-
-  if (col === "amount") {
-    const na = Number(a.amount || 0);
-    const nb = Number(b.amount || 0);
-    return sign * (na - nb);
-  }
-  if (col === "date") {
-    const sa = String(a.date || "");
-    const sb = String(b.date || "");
-    if (sa < sb) return sign * -1;
-    if (sa > sb) return sign *  1;
-    return sign * ((a.id||0) - (b.id||0));
-  }
-  if (col === "desc") {
-    const sa = String(a.desc || "").toLowerCase();
-    const sb = String(b.desc || "").toLowerCase();
-    if (sa < sb) return sign * -1;
-    if (sa > sb) return sign *  1;
-    return sign * ((a.id||0) - (b.id||0));
-  }
-  if (col === "child") {
-    const sa = String(a.child || "").toLowerCase();
-    const sb = String(b.child || "").toLowerCase();
-    if (sa < sb) return sign * -1;
-    if (sa > sb) return sign *  1;
-    return sign * ((a.id||0) - (b.id||0));
-  }
-  if (col === "category") {
-    const sa = String(a.category || "").toLowerCase();
-    const sb = String(b.category || "").toLowerCase();
-    if (sa < sb) return sign * -1;
-    if (sa > sb) return sign *  1;
-    return sign * ((a.id||0) - (b.id||0));
-  }
-  return sign * ((a.id||0) - (b.id||0));
+function setStatus(msg) {
+  $("statusMsg").textContent = msg;
+  setTimeout(() => { $("statusMsg").textContent = ""; }, 4000);
 }
 
-function applyFilter(txList) {
-  const childrenSet = new Set(FILTER.children || []);
-  const catsSet = new Set(FILTER.cats || []);
-  const q = (FILTER.desc || "").trim().toLowerCase();
-
-  let rows = [...txList];
-
-  if (childrenSet.size > 0) rows = rows.filter(r => childrenSet.has(r.child));
-  if (catsSet.size > 0) rows = rows.filter(r => catsSet.has(r.category));
-
-  if (FILTER.from) rows = rows.filter(r => r.date >= FILTER.from);
-  if (FILTER.to) rows = rows.filter(r => r.date <= FILTER.to);
-
-  if (q) rows = rows.filter(r => String(r.desc || "").toLowerCase().includes(q));
-
-  rows.sort((a,b) => compareRows(a,b,SORT.col,SORT.dir));
-  return rows;
-}
-
-/* =========================
-   Edit mode / counters
-========================= */
-function setEditMode(on, id=null) {
-  EDIT_ID = on ? Number(id) : null;
+function setEditMode(on) {
+  EDIT_MODE = on;
   $("editBadge").style.display = on ? "inline-block" : "none";
   $("cancelEditBtn").style.display = on ? "inline-block" : "none";
-  $("saveBtn").textContent = on ? "Enregistrer modification" : "Enregistrer";
 }
-function updateDescCounter() { $("descCount").textContent = String($("descInput").value.length); }
 
-/* =========================
-   Backup helpers
-========================= */
-function daysBetween(tsThen, tsNow) {
-  const ms = Math.max(0, tsNow - tsThen);
-  return ms / (1000 * 60 * 60 * 24);
+function updateDescCounter() {
+  const len = $("descInput").value.length;
+  $("descCount").textContent = len;
 }
-function formatLastBackup(ts) {
-  if (!ts) return "Jamais";
-  return fmtTs(ts);
-}
-function isBackupStale() {
-  const interval = Number(CFG?.backup?.intervalDays || 7);
-  const last = CFG?.backup?.lastBackupTs;
-  if (!last) return true;
-  return daysBetween(Number(last), Date.now()) >= interval;
-}
-async function updateBackupUI() {
-  const interval = Number(CFG?.backup?.intervalDays || 7);
-  const last = CFG?.backup?.lastBackupTs;
-  const info = `Backup: ${formatLastBackup(last)} • Rappel: ${interval} jour(s)` + (isBackupStale() ? " ⚠️" : "");
-  $("backupInfo").textContent = info;
 
-  $("backupDays").value = String(interval);
-  $("lastBackupDisplay").value = formatLastBackup(last);
-}
-function maybeRemindBackup() {
-  if (isBackupStale()) {
-    const interval = Number(CFG?.backup?.intervalDays || 7);
-    setStatus(`⚠️ Pense à faire un backup (aucun backup depuis ≥ ${interval} jour(s)).`);
+function renderSelectOptions(selectEl, opts, selected) {
+  selectEl.innerHTML = "";
+  for (const opt of opts) {
+    const o = document.createElement("option");
+    o.value = opt;
+    o.textContent = opt;
+    if (opt === selected) o.selected = true;
+    selectEl.appendChild(o);
   }
 }
-async function saveBackupReminderFromUI() {
-  const v = Number($("backupDays").value);
-  if (!Number.isFinite(v) || v < 1) return setStatus("Rappel backup invalide (min 1 jour).");
 
-  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
-  CFG.backup.intervalDays = Math.floor(v);
+function getSelectedValues(selectEl) {
+  const arr = [];
+  for (const opt of selectEl.options) {
+    if (opt.selected) arr.push(opt.value);
+  }
+  return arr;
+}
 
-  await saveConfig(CFG);
-  await logAction("PARAM", 0, `Backup reminder = ${CFG.backup.intervalDays} jour(s)`);
-  await refreshData();
-  await updateBackupUI();
-  setStatus("Rappel backup enregistré ✅");
+function setSelectedValues(selectEl, vals) {
+  for (const opt of selectEl.options) {
+    opt.selected = vals.includes(opt.value);
+  }
+}
+
+function renderFilterSelects() {
+  renderSelectOptions($("filterChild"), CFG.kids, "");
+  renderSelectOptions($("filterCat"), CFG.cats, "");
+  setSelectedValues($("filterChild"), []);
+  setSelectedValues($("filterCat"), []);
 }
 
 /* =========================
-   Backup auto (JSON + CSV)
+   Afficher/masquer les champs école
 ========================= */
-async function backupNow() {
-  const tx = await dbGetAll(STORE_TX);
-  const log = await dbGetAll(STORE_LOG);
-
-  const payload = {
-    version: 1,
-    exportedAt: nowISO(),
-    cfg: CFG,
-    tx,
-    log
-  };
-
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  const ss = String(d.getSeconds()).padStart(2, "0");
-  const stamp = `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
-
-  const jsonName = `budget-enfants-${stamp}.json`;
-  const csvName  = `budget-enfants-${stamp}.csv`;
-
-  const totals = { "Lily-Rose": 0, "Victor": 0 };
-  for (const r of tx) {
-    if (totals[r.child] === undefined) totals[r.child] = 0;
-    totals[r.child] += Number(r.amount || 0);
+function toggleSchoolFields() {
+  const selectedCat = $("catSelect").value;
+  const schoolFields = $("schoolFields");
+  
+  // Normaliser la comparaison (minuscules, trim)
+  if (selectedCat.toLowerCase().trim() === "école") {
+    schoolFields.classList.add("visible");
+  } else {
+    schoolFields.classList.remove("visible");
+    // Réinitialiser les champs quand on change de catégorie
+    $("noteInput").value = "";
+    $("moyenneInput").value = "";
   }
-  const totalGlobal = Object.values(totals).reduce((a,b)=>a+b,0);
-
-  const csvEscape = (v) => {
-    const s = String(v ?? "");
-    if (/[;"\n\r]/.test(s)) return `"${s.replaceAll('"','""')}"`;
-    return s;
-  };
-
-  const txSorted = [...tx].sort((a,b) => (String(b.date||"").localeCompare(String(a.date||"")) || ((b.id||0)-(a.id||0))));
-
-  const lines = [];
-  lines.push(`# Export lisible - ${nowISO()}`);
-  lines.push(`# Total Lily-Rose;${totals["Lily-Rose"].toFixed(2)}`);
-  lines.push(`# Total Victor;${totals["Victor"].toFixed(2)}`);
-  lines.push(`# Total global;${totalGlobal.toFixed(2)}`);
-  lines.push(`#`);
-  lines.push(`Date;Enfant;Catégorie;Montant;Description`);
-
-  for (const r of txSorted) {
-    lines.push([
-      csvEscape(r.date),
-      csvEscape(r.child),
-      csvEscape(r.category),
-      csvEscape(Number(r.amount || 0).toFixed(2)),
-      csvEscape(r.desc || "")
-    ].join(";"));
-  }
-  const csvText = lines.join("\n");
-
-  const downloadBlob = (blob, filename) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-  };
-
-  downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), jsonName);
-  downloadBlob(new Blob([csvText], { type: "text/csv;charset=utf-8" }), csvName);
-
-  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
-  CFG.backup.lastBackupTs = Date.now();
-  await saveConfig(CFG);
-
-  await logAction("BACKUP", 0, `Backup: ${jsonName} + ${csvName}`);
-  await refreshData();
-  await updateBackupUI();
-
-  setStatus("Backup généré ✅ (JSON + CSV)");
 }
 
 /* =========================
-   Render
+   Calculer le montant automatiquement pour école
 ========================= */
-function renderTotals() {
-  const totals = {};
-  for (const kid of CFG.kids) totals[kid] = 0;
-
-  for (const r of ALL_TX) {
-    if (totals[r.child] === undefined) totals[r.child] = 0;
-    totals[r.child] += Number(r.amount || 0);
-  }
-
-  const wrap = $("totals");
-  wrap.innerHTML = "";
-  for (const kid of CFG.kids) {
-    const amt = totals[kid] || 0;
-    const box = document.createElement("div");
-    box.className = "totalBox";
-    box.innerHTML = `
-      <div class="name">${esc(kid)}</div>
-      <div class="amt ${amt < 0 ? "neg" : "pos"}">${fmtMoney(amt)}</div>
-    `;
-    wrap.appendChild(box);
-  }
-}
-
-function renderTable() {
-  const tbody = $("rows");
-  tbody.innerHTML = "";
-
-  const rows = applyFilter(ALL_TX);
-  $("rowsCount").textContent = `${rows.length} ligne(s) affichée(s)`;
-
-  const sum = rows.reduce((acc, r) => acc + Number(r.amount || 0), 0);
-  $("filteredTotal").textContent = fmtMoney(sum);
-
-  if (rows.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6" class="muted">Aucune ligne (selon le filtre).</td>`;
-    tbody.appendChild(tr);
+function calculateSchoolAmount() {
+  const selectedCat = $("catSelect").value;
+  
+  // Vérifier si c'est la catégorie "école"
+  if (selectedCat.toLowerCase().trim() !== "école") {
     return;
   }
-
-  for (const r of rows) {
-    const amtNum = Number(r.amount || 0);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${esc(r.date)}</td>
-      <td><span class="pill">${esc(r.child)}</span></td>
-      <td>${esc(r.category)}</td>
-      <td>${esc(r.desc)}</td>
-      <td class="right ${amtNum < 0 ? "neg" : "pos"}" style="font-weight:1000;">${fmtMoney(amtNum)}</td>
-      <td class="right">
-        <button class="secondary smallBtn" data-edit="${r.id}">Modifier</button>
-        <button class="danger smallBtn" data-del="${r.id}">Suppr.</button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  tbody.querySelectorAll("button[data-edit]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = Number(btn.getAttribute("data-edit"));
-      const r = ALL_TX.find(x => x.id === id);
-      if (!r) return;
-
-      setActiveChild(r.child);
-
-      $("dateInput").value = r.date;
-      $("catSelect").value = r.category;
-      $("amtInput").value = String(Number(r.amount).toFixed(2));
-      $("descInput").value = r.desc || "";
-      updateDescCounter();
-
-      setEditMode(true, id);
-      setStatus("Modification: ajuste les champs puis enregistre.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    });
-  });
-
-  tbody.querySelectorAll("button[data-del]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = Number(btn.getAttribute("data-del"));
-      const r = ALL_TX.find(x => x.id === id);
-      if (!r) return;
-
-      if (!confirm(`Supprimer cette ligne ?\n\n${r.date} • ${r.child} • ${r.category}\n${r.desc}\n${fmtMoney(Number(r.amount))}`)) return;
-
-      await dbDelete(STORE_TX, id);
-      await logAction("SUPPR", r.amount, `id=${id} | ${r.child} | ${r.date} | ${r.category} | ${r.desc}`);
-      await refreshData();
-
-      if (EDIT_ID === id) {
-        setEditMode(false);
-        resetEntryForm();
-      }
-
-      maybeRemindBackup();
-      setStatus("Ligne supprimée ✅");
-    });
-  });
-}
-
-function renderLog() {
-  const tbody = $("logRows");
-  tbody.innerHTML = "";
-
-  const logs = [...ALL_LOG].sort((a,b) => (b.ts - a.ts));
-  $("logCount").textContent = `${logs.length} action(s)`;
-
-  if (logs.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="4" class="muted">Aucune action.</td>`;
-    tbody.appendChild(tr);
+  
+  const note = parseFloat($("noteInput").value) || 0;
+  const moyenne = parseFloat($("moyenneInput").value) || 0;
+  
+  // Si note = 100, c'est automatiquement 20$
+  if (note === 100) {
+    $("amtInput").value = "20.00";
     return;
   }
-
-  for (const l of logs.slice(0, 300)) {
-    const amt = Number(l.amount || 0);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="mono">${esc(fmtTs(l.ts))}</td>
-      <td><span class="pill">${esc(l.action)}</span></td>
-      <td>${esc(l.details)}</td>
-      <td class="right ${amt < 0 ? "neg" : "pos"}" style="font-weight:1000;">${fmtMoney(amt)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  if (logs.length > 300) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="4" class="muted">Affichage limité aux 300 dernières actions.</td>`;
-    tbody.appendChild(tr);
+  
+  // Si note >= 80
+  if (note >= 80) {
+    const difference = note - moyenne;
+    
+    // Si la différence est positive
+    if (difference > 0) {
+      // Calculer le montant : 1$ par point, max 15$
+      const montant = Math.min(difference * 1, 15);
+      $("amtInput").value = montant.toFixed(2);
+    } else {
+      // Si la note n'est pas au-dessus de la moyenne, montant = 0
+      $("amtInput").value = "0.00";
+    }
+  } else {
+    // Si note < 80, montant = 0
+    $("amtInput").value = "0.00";
   }
 }
 
 /* =========================
-   Data refresh
+   Active child
 ========================= */
-async function refreshData() {
-  ALL_TX = await dbGetAll(STORE_TX);
-  ALL_LOG = await dbGetAll(STORE_LOG);
+function setActiveChild(childName) {
+  ACTIVE_CHILD = childName;
+  CFG.defaults.kid = childName;
+  saveConfig(CFG);
 
-  renderTotals();
-  renderTable();
-  renderLog();
-
-  $("dbInfo").textContent = `Transactions: ${ALL_TX.length} • Journal: ${ALL_LOG.length}`;
-  await updateBackupUI();
-}
-
-/* =========================
-   Save / Update transaction
-========================= */
-function validateEntryFields() {
-  const child = ACTIVE_CHILD;
-  const date = $("dateInput").value || todayISO();
-  const category = $("catSelect").value;
-  const amtRaw = $("amtInput").value;
-  const desc = $("descInput").value.trim();
-
-  if (!child) return { ok:false, msg:"Choisis un enfant (boutons en bas)." };
-  if (!date) return { ok:false, msg:"Choisis une date." };
-  if (!category) return { ok:false, msg:"Choisis une catégorie." };
-  if (amtRaw === "" || amtRaw === null) return { ok:false, msg:"Saisis un montant." };
-
-  const amount = Number(amtRaw);
-  if (!Number.isFinite(amount)) return { ok:false, msg:"Montant invalide." };
-
-  if (!desc) return { ok:false, msg:"La description est obligatoire (max 100 caractères)." };
-  if (desc.length > 100) return { ok:false, msg:"Description trop longue (max 100)." };
-
-  return { ok:true, child, date, category, amount, desc };
-}
-
-async function saveOrUpdate() {
-  const v = validateEntryFields();
-  if (!v.ok) return setStatus(v.msg);
-
-  if (EDIT_ID == null) {
-    const id = await dbAdd(STORE_TX, {
-      child: v.child,
-      date: v.date,
-      category: v.category,
-      amount: v.amount,
-      desc: v.desc,
-      createdAt: Date.now(),
-      updatedAt: null
-    });
-    await logAction("AJOUT", v.amount, `id=${id} | ${v.child} | ${v.date} | ${v.category} | ${v.desc}`);
-    await refreshData();
-
-    $("amtInput").value = "";
-    $("descInput").value = "";
-    updateDescCounter();
-
-    setStatus("Enregistré ✅");
-    maybeRemindBackup();
-    return;
+  if (childName === "Lily-Rose") {
+    $("kidLily").classList.add("active");
+    $("kidVictor").classList.remove("active");
+  } else {
+    $("kidVictor").classList.add("active");
+    $("kidLily").classList.remove("active");
   }
-
-  const id = Number(EDIT_ID);
-  const old = ALL_TX.find(x => x.id === id);
-  if (!old) {
-    setEditMode(false);
-    return setStatus("La ligne à modifier n’existe plus.");
-  }
-
-  const updated = {
-    ...old,
-    child: v.child,
-    date: v.date,
-    category: v.category,
-    amount: v.amount,
-    desc: v.desc,
-    updatedAt: Date.now()
-  };
-  await dbPut(STORE_TX, updated);
-
-  const delta = Number(updated.amount) - Number(old.amount || 0);
-  await logAction(
-    "MODIF",
-    updated.amount,
-    `id=${id} | ancien=${fmtMoney(Number(old.amount||0))} | nouveau=${fmtMoney(updated.amount)} | delta=${fmtMoney(delta)} | ${updated.child} | ${updated.date} | ${updated.category} | ${updated.desc}`
-  );
-
-  setEditMode(false);
-  await refreshData();
   resetEntryForm();
-
-  setStatus("Modification enregistrée ✅");
-  maybeRemindBackup();
 }
 
-/* =========================
-   Reset / cancel edit
-========================= */
 function resetEntryForm() {
   $("dateInput").value = todayISO();
   $("catSelect").value = CFG.defaults.cat || CFG.cats[0];
   $("amtInput").value = "";
   $("descInput").value = "";
+  $("noteInput").value = "";
+  $("moyenneInput").value = "";
   updateDescCounter();
-  setStatus("");
+  toggleSchoolFields();
 }
+
+/* =========================
+   Save / Update
+========================= */
+async function saveOrUpdate() {
+  const dateVal = $("dateInput").value;
+  const cat = $("catSelect").value;
+  const amt = parseFloat($("amtInput").value);
+  const desc = $("descInput").value.trim();
+
+  if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
+    return setStatus("Tous les champs sont obligatoires.");
+  }
+
+  const record = {
+    child: ACTIVE_CHILD,
+    date: dateVal,
+    category: cat,
+    amount: amt,
+    desc: desc.slice(0,100),
+    createdAt: Date.now(),
+    updatedAt: null
+  };
+
+  if (EDIT_MODE && EDIT_ID !== null) {
+    record.id = EDIT_ID;
+    const existing = await dbGet(STORE_TX, EDIT_ID);
+    if (existing) record.createdAt = existing.createdAt;
+    record.updatedAt = Date.now();
+    await dbPut(STORE_TX, record);
+    await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
+    setStatus("Transaction modifiée ✅");
+    setEditMode(false);
+    EDIT_ID = null;
+  } else {
+    await dbAdd(STORE_TX, record);
+    await logAction("ADD", amt, `Ajout: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
+    setStatus("Transaction enregistrée ✅");
+  }
+
+  await refreshData();
+  resetEntryForm();
+}
+
 function cancelEdit() {
   setEditMode(false);
+  EDIT_ID = null;
   resetEntryForm();
   setStatus("Modification annulée.");
 }
 
 /* =========================
-   Settings + Import/Export
+   Load / Delete / Edit
+========================= */
+async function refreshData() {
+  ALL_DATA = await dbGetAll(STORE_TX);
+  renderTable();
+  await renderTotals();
+  await renderLog();
+  await updateDbInfo();
+}
+
+async function updateDbInfo() {
+  const txCount = ALL_DATA.length;
+  const logCount = (await dbGetAll(STORE_LOG)).length;
+  $("dbInfo").textContent = `${txCount} transactions • ${logCount} log`;
+}
+
+async function deleteRecord(id) {
+  if (!confirm("Supprimer cette transaction ?")) return;
+  const rec = await dbGet(STORE_TX, id);
+  if (!rec) return;
+  await dbDelete(STORE_TX, id);
+  await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category} | ${rec.desc}`);
+  await refreshData();
+  setStatus("Transaction supprimée ✅");
+}
+
+async function editRecord(id) {
+  const rec = await dbGet(STORE_TX, id);
+  if (!rec) return;
+  EDIT_ID = id;
+  setEditMode(true);
+
+  $("dateInput").value = rec.date;
+  $("catSelect").value = rec.category;
+  $("amtInput").value = rec.amount;
+  $("descInput").value = rec.desc;
+  
+  toggleSchoolFields();
+  updateDescCounter();
+  setStatus("Mode modification activé.");
+
+  const kidToSelect = FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0];
+  setActiveChild(kidToSelect);
+}
+
+/* =========================
+   Render
+========================= */
+function applyFilters(data) {
+  let arr = data.slice();
+  if (FILTER.children.length > 0) {
+    arr = arr.filter(r => FILTER.children.includes(r.child));
+  }
+  if (FILTER.cats.length > 0) {
+    arr = arr.filter(r => FILTER.cats.includes(r.category));
+  }
+  if (FILTER.desc) {
+    const search = FILTER.desc.toLowerCase();
+    arr = arr.filter(r => r.desc.toLowerCase().includes(search));
+  }
+  if (FILTER.from) {
+    arr = arr.filter(r => r.date >= FILTER.from);
+  }
+  if (FILTER.to) {
+    arr = arr.filter(r => r.date <= FILTER.to);
+  }
+  return arr;
+}
+
+function sortData(data) {
+  const col = SORT.col;
+  const dir = SORT.dir;
+  data.sort((a, b) => {
+    let valA = a[col];
+    let valB = b[col];
+    if (col === "date") {
+      valA = new Date(valA).getTime();
+      valB = new Date(valB).getTime();
+    }
+    if (col === "amount") {
+      valA = parseFloat(valA);
+      valB = parseFloat(valB);
+    }
+    if (valA < valB) return dir === "asc" ? -1 : 1;
+    if (valA > valB) return dir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const filtered = applyFilters(ALL_DATA);
+  sortData(filtered);
+
+  const tbody = $("txBody");
+  tbody.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" style="text-align:center; color:#6b7280;">Aucune transaction</td>`;
+    tbody.appendChild(tr);
+  } else {
+    for (const row of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdChild = document.createElement("td");
+      tdChild.innerHTML = `<span class="pill">${row.child}</span>`;
+      tr.appendChild(tdChild);
+
+      const tdDate = document.createElement("td");
+      tdDate.textContent = formatDateHuman(row.date);
+      tr.appendChild(tdDate);
+
+      const tdCat = document.createElement("td");
+      tdCat.textContent = row.category;
+      tr.appendChild(tdCat);
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "right";
+      const amtClass = row.amount >= 0 ? "pos" : "neg";
+      tdAmt.innerHTML = `<span class="amt ${amtClass}">${row.amount.toFixed(2)} $</span>`;
+      tr.appendChild(tdAmt);
+
+      const tdDesc = document.createElement("td");
+      tdDesc.textContent = row.desc;
+      tr.appendChild(tdDesc);
+
+      const tdActions = document.createElement("td");
+      tdActions.innerHTML = `
+        <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
+        <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
+      `;
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  const filteredSum = filtered.reduce((s, r) => s + r.amount, 0);
+  $("rowsCount").textContent = `${filtered.length} transaction(s)`;
+  $("filteredTotal").textContent = `${filteredSum.toFixed(2)} $`;
+}
+
+async function renderTotals() {
+  const kids = CFG.kids;
+  const container = $("totals");
+  container.innerHTML = "";
+
+  for (const kid of kids) {
+    const rows = ALL_DATA.filter(r => r.child === kid);
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    const amtClass = total >= 0 ? "pos" : "neg";
+
+    const box = document.createElement("div");
+    box.className = "totalBox";
+    box.innerHTML = `
+      <div class="name">${kid}</div>
+      <div class="amt ${amtClass}">${total.toFixed(2)} $</div>
+    `;
+    container.appendChild(box);
+  }
+}
+
+async function renderLog() {
+  const logs = await dbGetAll(STORE_LOG);
+  const tbody = $("logBody");
+  tbody.innerHTML = "";
+
+  if (logs.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" style="text-align:center;color:#6b7280;">Aucune entrée</td>`;
+    tbody.appendChild(tr);
+  } else {
+    const sorted = logs.slice().sort((a,b) => b.ts - a.ts);
+    for (const entry of sorted) {
+      const tr = document.createElement("tr");
+
+      const tdTs = document.createElement("td");
+      tdTs.textContent = formatTS(entry.ts);
+      tdTs.style.fontSize = "12px";
+      tr.appendChild(tdTs);
+
+      const tdAction = document.createElement("td");
+      tdAction.innerHTML = `<span class="pill">${entry.action}</span>`;
+      tr.appendChild(tdAction);
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "right";
+      const cls = entry.amount >= 0 ? "pos" : "neg";
+      tdAmt.innerHTML = `<span class="amt ${cls}">${entry.amount.toFixed(2)} $</span>`;
+      tr.appendChild(tdAmt);
+
+      const tdDetails = document.createElement("td");
+      tdDetails.textContent = entry.details;
+      tdDetails.style.fontSize = "12px";
+      tr.appendChild(tdDetails);
+
+      tbody.appendChild(tr);
+    }
+  }
+}
+
+/* =========================
+   Settings
 ========================= */
 async function loadSettingsUI() {
   $("catsCfg").value = CFG.cats.join("\n");
+  $("backupDays").value = CFG.backup?.intervalDays || 7;
+  $("lastBackupDisplay").value = CFG.backup?.lastBackupTs
+    ? formatTS(CFG.backup.lastBackupTs)
+    : "Jamais";
 }
 
 async function saveSettingsFromUI() {
-  const cats = normalizeLines($("catsCfg").value);
-  if (cats.length === 0) return setStatus("Ajoute au moins 1 catégorie.");
-
-  const defaults = {
-    kid: FIXED_KIDS[0],
-    cat: cats.includes(CFG.defaults?.cat) ? CFG.defaults.cat : cats[0],
-  };
-
-  const backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
-
-  CFG = { kids: FIXED_KIDS, cats, defaults, backup };
+  const raw = $("catsCfg").value.trim();
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return setStatus("Au moins une catégorie.");
+  CFG.cats = lines;
+  if (!CFG.cats.includes(CFG.defaults.cat)) {
+    CFG.defaults.cat = CFG.cats[0];
+  }
   await saveConfig(CFG);
-
-  renderSelectOptions($("catSelect"), CFG.cats, defaults.cat);
-  renderFilterSelects();
-
-  await logAction("PARAM", 0, `Catégories=${cats.join(", ")}`);
-  await refreshData();
+  await initUIAfterConfig();
   setStatus("Catégories enregistrées ✅");
 }
 
 async function resetSettingsToDefault() {
-  CFG = {
-    kids: FIXED_KIDS,
-    cats: DEFAULT_CATS,
-    defaults: { kid: FIXED_KIDS[0], cat: DEFAULT_CATS[0] },
-    backup: CFG?.backup || { intervalDays: 7, lastBackupTs: null }
-  };
+  if (!confirm("Remettre les catégories par défaut ?")) return;
+  CFG.cats = DEFAULT_CATS.slice();
+  CFG.defaults.cat = DEFAULT_CATS[0];
   await saveConfig(CFG);
-  await logAction("PARAM", 0, "Paramètres remis par défaut");
   await initUIAfterConfig();
-  setStatus("Paramètres remis par défaut ✅");
+  setStatus("Catégories par défaut restaurées ✅");
 }
 
+/* =========================
+   Backup reminder
+========================= */
+async function updateBackupUI() {
+  const last = CFG.backup?.lastBackupTs;
+  $("lastBackupDisplay").value = last ? formatTS(last) : "Jamais";
+}
+
+async function saveBackupReminderFromUI() {
+  const days = parseInt($("backupDays").value, 10);
+  if (!Number.isFinite(days) || days < 1) return setStatus("Intervalle invalide.");
+  CFG.backup.intervalDays = days;
+  await saveConfig(CFG);
+  setStatus("Rappel backup enregistré ✅");
+}
+
+function maybeRemindBackup() {
+  const last = CFG.backup?.lastBackupTs;
+  const interval = CFG.backup?.intervalDays || 7;
+  if (last === null) {
+    $("backupInfo").textContent = "⚠️ Aucun backup fait. Pense à en faire un régulièrement !";
+    return;
+  }
+  const now = Date.now();
+  const elapsed = now - last;
+  const elapsedDays = elapsed / (1000 * 60 * 60 * 24);
+  if (elapsedDays >= interval) {
+    $("backupInfo").textContent = `⚠️ Dernier backup il y a ${Math.floor(elapsedDays)} jours. Temps de refaire un backup !`;
+  } else {
+    $("backupInfo").textContent = `✅ Backup OK (il y a ${Math.floor(elapsedDays)} jours).`;
+  }
+}
+
+async function backupNow() {
+  await exportJSON();
+  await exportCSV();
+  CFG.backup.lastBackupTs = Date.now();
+  await saveConfig(CFG);
+  await updateBackupUI();
+  maybeRemindBackup();
+  setStatus("Backup terminé (JSON + CSV) ✅");
+}
+
+/* =========================
+   Export CSV
+========================= */
+async function exportCSV() {
+  const rows = await dbGetAll(STORE_TX);
+  let csv = "Enfant,Date,Catégorie,Montant,Description,Créé le,Modifié le\n";
+  for (const r of rows) {
+    const child = r.child || "";
+    const date = r.date || "";
+    const cat = r.category || "";
+    const amt = r.amount || 0;
+    const desc = (r.desc || "").replace(/"/g, '""');
+    const createdAt = formatTS(r.createdAt);
+    const updatedAt = r.updatedAt ? formatTS(r.updatedAt) : "";
+    csv += `"${child}","${date}","${cat}","${amt}","${desc}","${createdAt}","${updatedAt}"\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `budget-enfants-${todayISO()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  await logAction("EXPORT_CSV", 0, "Export CSV des transactions");
+}
+
+/* =========================
+   Import / Export JSON
+========================= */
 async function exportJSON() {
   const payload = {
     version: 1,
@@ -1128,12 +1106,17 @@ async function initUIAfterConfig() {
   maybeRemindBackup();
 
   setActiveChild(CFG.defaults.kid || "Lily-Rose");
+  
+  // Initialiser l'affichage des champs école
+  toggleSchoolFields();
 }
 
 async function init() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
+
+  db = await openDB();
 
   CFG = await loadConfig();
 
@@ -1151,6 +1134,13 @@ async function init() {
   $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
   $("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
+
+  // Événement pour afficher/masquer les champs école
+  $("catSelect").addEventListener("change", toggleSchoolFields);
+  
+  // Événements pour calculer automatiquement le montant
+  $("noteInput").addEventListener("input", calculateSchoolAmount);
+  $("moyenneInput").addEventListener("input", calculateSchoolAmount);
 
   $("backupNowBtn").addEventListener("click", backupNow);
   $("backupNowBtn2").addEventListener("click", backupNow);
