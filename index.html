@@ -168,12 +168,6 @@
         <button id="saveBtn" type="button">Enregistrer</button>
         <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
       </div>
-
-      <div class="actions" style="margin-top:10px;">
-        <button id="resetBtn" class="secondary" type="button">Réinitialiser</button>
-        <button id="backupNowBtn" class="secondary" type="button">Backup</button>
-      </div>
-
       <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
       <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
     </section>
@@ -312,7 +306,7 @@
     <!-- Import/Export final -->
     <section class="card">
       <div class="actions">
-        <button id="exportBtn" class="secondary" type="button">Export complet (JSON)</button>
+        <button id="exportBtn" class="secondary" type="button">Export complet (JSON + CSV)</button>
         <button id="importBtn" class="secondary" type="button">Import JSON</button>
       </div>
       <input id="importFile" type="file" accept="application/json" style="display:none;" />
@@ -1156,16 +1150,13 @@ async function init() {
   await initUIAfterConfig();
 
   $("saveBtn").addEventListener("click", saveOrUpdate);
-  $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
-  $("cancelEditBtn").addEventListener("click", cancelEdit);
+$("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
 
   $("catSelect").addEventListener("change", toggleSchoolFields);
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
-
-  $("backupNowBtn").addEventListener("click", backupNow);
-  $("backupNowBtn2").addEventListener("click", backupNow);
+$("backupNowBtn2").addEventListener("click", backupNow);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
 
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
@@ -1191,9 +1182,8 @@ async function init() {
 
     renderTable();
   });
-
-  $("exportBtn").addEventListener("click", exportJSON);
-  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("exportBtn").addEventListener("click", backupNow);
+$("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -1229,4 +1219,3 @@ init();
 </script>
 </body>
 </html>
-
