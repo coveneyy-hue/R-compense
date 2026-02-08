@@ -10,7 +10,9 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
     header { padding: 14px 16px; background: #111827; color: #fff; }
     header h1 { margin: 0; font-size: 18px; }
-    main { padding: 14px 16px 120px; max-width: 980px; margin: 0 auto; }
+
+    /* plus besoin de gros padding bas (barre enfant n'est plus fixed en bas) */
+    main { padding: 14px 16px 40px; max-width: 980px; margin: 0 auto; }
 
     .card { background:#fff; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); margin-bottom: 12px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -62,13 +64,14 @@
     }
     details[open] summary::before { content: "▾"; }
 
-    /* Barre enfant fixe */
+    /* Barre enfant (EN HAUT) */
     .kidBar{
-      position: fixed;
-      left: 0; right: 0; bottom: 0;
+      position: sticky;
+      top: 0;
+      left: 0; right: 0;
       padding: 10px 12px;
-      background: rgba(246,247,251,.92);
-      border-top: 1px solid #e5e7eb;
+      background: rgba(246,247,251,.96);
+      border-bottom: 1px solid #e5e7eb;
       backdrop-filter: blur(6px);
       display: flex;
       gap: 10px;
@@ -88,7 +91,7 @@
       background: #111827;
       color: #ffffff;
     }
-    
+
     /* Style pour les champs école */
     .school-fields {
       display: none;
@@ -101,6 +104,12 @@
 </head>
 <body>
   <header><h1>R-compense</h1></header>
+
+  <!-- Barre enfant en HAUT (aucun sélectionné par défaut) -->
+  <div class="kidBar">
+    <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
+    <button id="kidVictor" class="kidBtn" type="button">Victor</button>
+  </div>
 
   <main>
     <!-- Saisie -->
@@ -137,7 +146,7 @@
           </div>
         </div>
         <div class="hint" style="margin-top:6px;">
-          Le montant sera calculé automatiquement selon les règles : 
+          Le montant sera calculé automatiquement selon les règles :
           • Note ≥ 80 : 1$ par point au-dessus de la moyenne (max 15$)
           • Note = 100 : 20$ automatiquement
         </div>
@@ -156,7 +165,7 @@
       </div>
 
       <div class="actions" style="margin-top:12px;">
-        <button id="saveBtn">Enregistrer</button>
+        <button id="saveBtn" type="button">Enregistrer</button>
         <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
       </div>
 
@@ -310,12 +319,6 @@
     </section>
   </main>
 
-  <!-- Barre enfant fixe (bas de page) -->
-  <div class="kidBar">
-    <button id="kidLily" class="kidBtn">Lily-Rose</button>
-    <button id="kidVictor" class="kidBtn">Victor</button>
-  </div>
-
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
 const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Argent dépensé","Gâterie","Éducation financière"];
@@ -326,9 +329,10 @@ const STORE_TX = "transactions";
 const STORE_LOG = "log";
 
 let db = null;
-let CFG = { kids: FIXED_KIDS, cats: DEFAULT_CATS, defaults: { kid: "Lily-Rose", cat: "Tâches ménagères" } };
+/* kid par défaut = null (aucun sélectionné) */
+let CFG = { kids: FIXED_KIDS, cats: DEFAULT_CATS, defaults: { kid: null, cat: "Tâches ménagères" }, backup: { intervalDays: 7, lastBackupTs: null } };
 let ALL_DATA = [];
-let ACTIVE_CHILD = "Lily-Rose";
+let ACTIVE_CHILD = null;
 let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
 let SORT = { col: "date", dir: "desc" };
 let EDIT_MODE = false;
@@ -461,7 +465,7 @@ async function loadConfig() {
   return {
     kids: FIXED_KIDS,
     cats: DEFAULT_CATS,
-    defaults: { kid: FIXED_KIDS[0], cat: DEFAULT_CATS[0] },
+    defaults: { kid: null, cat: DEFAULT_CATS[0] },
     backup: { intervalDays: 7, lastBackupTs: null }
   };
 }
@@ -534,19 +538,29 @@ function renderFilterSelects() {
   setSelectedValues($("filterCat"), []);
 }
 
+/* Verrouiller / déverrouiller la saisie tant qu'aucun enfant n'est choisi */
+function lockEntryForm(lock) {
+  const inputs = document.querySelectorAll(
+    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveBtn"
+  );
+  inputs.forEach(el => el.disabled = lock);
+
+  if (lock) {
+    setStatus("Sélectionne Lily ou Victor pour commencer 👆");
+  }
+}
+
 /* =========================
    Afficher/masquer les champs école
 ========================= */
 function toggleSchoolFields() {
   const selectedCat = $("catSelect").value;
   const schoolFields = $("schoolFields");
-  
-  // Normaliser la comparaison (minuscules, trim)
-  if (selectedCat.toLowerCase().trim() === "école") {
+
+  if ((selectedCat || "").toLowerCase().trim() === "école") {
     schoolFields.classList.add("visible");
   } else {
     schoolFields.classList.remove("visible");
-    // Réinitialiser les champs quand on change de catégorie
     $("noteInput").value = "";
     $("moyenneInput").value = "";
   }
@@ -557,36 +571,28 @@ function toggleSchoolFields() {
 ========================= */
 function calculateSchoolAmount() {
   const selectedCat = $("catSelect").value;
-  
-  // Vérifier si c'est la catégorie "école"
-  if (selectedCat.toLowerCase().trim() !== "école") {
+
+  if ((selectedCat || "").toLowerCase().trim() !== "école") {
     return;
   }
-  
+
   const note = parseFloat($("noteInput").value) || 0;
   const moyenne = parseFloat($("moyenneInput").value) || 0;
-  
-  // Si note = 100, c'est automatiquement 20$
+
   if (note === 100) {
     $("amtInput").value = "20.00";
     return;
   }
-  
-  // Si note >= 80
+
   if (note >= 80) {
     const difference = note - moyenne;
-    
-    // Si la différence est positive
     if (difference > 0) {
-      // Calculer le montant : 1$ par point, max 15$
       const montant = Math.min(difference * 1, 15);
       $("amtInput").value = montant.toFixed(2);
     } else {
-      // Si la note n'est pas au-dessus de la moyenne, montant = 0
       $("amtInput").value = "0.00";
     }
   } else {
-    // Si note < 80, montant = 0
     $("amtInput").value = "0.00";
   }
 }
@@ -596,16 +602,26 @@ function calculateSchoolAmount() {
 ========================= */
 function setActiveChild(childName) {
   ACTIVE_CHILD = childName;
-  CFG.defaults.kid = childName;
-  saveConfig(CFG);
+
+  $("kidLily").classList.remove("active");
+  $("kidVictor").classList.remove("active");
+
+  if (!childName) {
+    lockEntryForm(true);
+    return;
+  }
+
+  lockEntryForm(false);
 
   if (childName === "Lily-Rose") {
     $("kidLily").classList.add("active");
-    $("kidVictor").classList.remove("active");
   } else {
     $("kidVictor").classList.add("active");
-    $("kidLily").classList.remove("active");
   }
+
+  CFG.defaults.kid = childName; // on mémorise le dernier choisi (mais on ne sélectionne PAS au démarrage)
+  saveConfig(CFG);
+
   resetEntryForm();
 }
 
@@ -624,6 +640,10 @@ function resetEntryForm() {
    Save / Update
 ========================= */
 async function saveOrUpdate() {
+  if (!ACTIVE_CHILD) {
+    return setStatus("Tu dois sélectionner un enfant avant d’enregistrer.");
+  }
+
   const dateVal = $("dateInput").value;
   const cat = $("catSelect").value;
   const amt = parseFloat($("amtInput").value);
@@ -707,7 +727,7 @@ async function editRecord(id) {
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
   $("descInput").value = rec.desc;
-  
+
   toggleSchoolFields();
   updateDescCounter();
   setStatus("Mode modification activé.");
@@ -1028,8 +1048,9 @@ async function importJSON(file) {
   CFG = payload.cfg;
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
-  CFG.defaults = CFG.defaults || { kid: FIXED_KIDS[0], cat: CFG.cats[0] };
-  CFG.defaults.kid = FIXED_KIDS[0];
+
+  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats[0] };
+  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
   if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
 
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
@@ -1105,9 +1126,11 @@ async function initUIAfterConfig() {
   await updateBackupUI();
   maybeRemindBackup();
 
-  setActiveChild(CFG.defaults.kid || "Lily-Rose");
-  
-  // Initialiser l'affichage des champs école
+  /* IMPORTANT: aucun enfant sélectionné au démarrage */
+  setActiveChild(null);
+  resetEntryForm();
+  lockEntryForm(true);
+
   toggleSchoolFields();
 }
 
@@ -1121,24 +1144,23 @@ async function init() {
   CFG = await loadConfig();
 
   CFG.kids = FIXED_KIDS;
-  CFG.defaults = CFG.defaults || { kid: FIXED_KIDS[0], cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
-  CFG.defaults.kid = FIXED_KIDS[0];
+  CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+
+  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
+  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
+
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
 
   await initUIAfterConfig();
-  resetEntryForm();
 
   $("saveBtn").addEventListener("click", saveOrUpdate);
   $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
   $("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
 
-  // Événement pour afficher/masquer les champs école
   $("catSelect").addEventListener("change", toggleSchoolFields);
-  
-  // Événements pour calculer automatiquement le montant
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
 
