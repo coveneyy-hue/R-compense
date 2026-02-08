@@ -104,6 +104,23 @@
     .iconBtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
     .iconBtn:hover{ background: rgba(255,255,255,0.18); }
     .iconBtn:active{ transform: translateY(1px); }
+
+    .saveWrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .saveMsg{
+      font-size:12px;
+      color:#e5e7eb;
+      opacity:0;
+      transform: translateY(-2px);
+      transition: opacity .18s ease, transform .18s ease;
+      min-height: 14px;
+      text-align:center;
+      max-width: 140px;
+      line-height: 1.1;
+    }
+    .saveMsg.show{ opacity:1; transform: translateY(0); }
+    .saveMsg.ok{ color:#d1fae5; }     /* vert très doux */
+    .saveMsg.warn{ color:#fde68a; }   /* jaune doux */
+
 </style>
 </head>
 <body>
@@ -113,7 +130,10 @@
   <div class="kidBar">
     <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn" type="button">Victor</button>
-    <button id="saveDiskBtn" class="iconBtn" type="button" title="Enregistrer" aria-label="Enregistrer">💾</button>
+    <div class="saveWrap">
+      <button id="saveDiskBtn" class="iconBtn" type="button" title="Enregistrer" aria-label="Enregistrer">💾</button>
+      <div id="saveMsg" class="saveMsg" aria-live="polite"></div>
+    </div>
   </div>
 
   <main>
@@ -336,6 +356,8 @@ let SORT = { col: "date", dir: "desc" };
 let EDIT_MODE = false;
 let EDIT_ID = null;
 
+
+let SAVE_MSG_TIMER = null;
 const $ = (id) => document.getElementById(id);
 
 function nowISO() {
@@ -493,6 +515,31 @@ function setStatus(msg) {
   setTimeout(() => { $("statusMsg").textContent = ""; }, 4000);
 }
 
+/* Message discret sous la disquette */
+function setSaveMsg(msg, type) {
+  const el = $("saveMsg");
+  if (!el) return;
+
+  if (SAVE_MSG_TIMER) {
+    clearTimeout(SAVE_MSG_TIMER);
+    SAVE_MSG_TIMER = null;
+  }
+
+  el.textContent = msg || "";
+  el.classList.remove("ok","warn","show");
+
+  if (!msg) return;
+
+  if (type === "ok") el.classList.add("ok");
+  if (type === "warn") el.classList.add("warn");
+  el.classList.add("show");
+
+  SAVE_MSG_TIMER = setTimeout(() => {
+    el.classList.remove("show");
+    // on laisse le texte (min-height) mais sans "flash"
+    SAVE_MSG_TIMER = null;
+  }, 2500);
+}
 function setEditMode(on) {
   EDIT_MODE = on;
   $("editBadge").style.display = on ? "inline-block" : "none";
@@ -639,6 +686,7 @@ function resetEntryForm() {
 ========================= */
 async function saveOrUpdate() {
   if (!ACTIVE_CHILD) {
+    setSaveMsg("Sélectionne Lily-Rose ou Victor avant d’enregistrer.", "warn");
     return setStatus("Tu dois sélectionner un enfant avant d’enregistrer.");
   }
 
@@ -654,11 +702,13 @@ async function saveOrUpdate() {
     note = parseFloat($("noteInput").value);
     moyenne = parseFloat($("moyenneInput").value);
     if (!Number.isFinite(note) || !Number.isFinite(moyenne)) {
+      setSaveMsg("Veuillez completer les infos manquantes avant d\'enregistrer", "warn");
       return setStatus("Pour École, la note et la moyenne sont obligatoires.");
     }
   }
 
   if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
+    setSaveMsg("Veuillez completer les infos manquantes avant d\'enregistrer", "warn");
     return setStatus("Tous les champs sont obligatoires.");
   }
 
@@ -677,9 +727,14 @@ async function saveOrUpdate() {
         Math.abs(new Date(r.date + "T00:00:00") - baseDate) <= ONE_MONTH_MS
       );
     if (dup) {
-      const msg = `Doublon potentiel "Pour ${ACTIVE_CHILD}, il y a déjà une note et une moyenne identique saisie à ${dup.date}". Voulez-vous tout de même continuer ?`;
+      const msg = `Doublon potentiel "Pour ${ACTIVE_CHILD}, il y a déjà une note et une moyenne identique saisie à ${dup.date}"
+Description existante: "${(dup.desc || "").slice(0,100)}"
+Nouvelle description: "${desc.slice(0,100)}"
+
+Voulez-vous tout de même continuer ?`;
       const ok = window.confirm(msg);
       if (!ok) {
+        setSaveMsg("", "");
         setStatus("Enregistrement annulé.");
         return;
       }
@@ -705,13 +760,15 @@ async function saveOrUpdate() {
     record.updatedAt = Date.now();
     await dbPut(STORE_TX, record);
     await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
-    setStatus("Transaction modifiée ✅");
+    setSaveMsg("Enregistement ok", "ok");
+    setStatus("Enregistement ok");
     setEditMode(false);
     EDIT_ID = null;
   } else {
     await dbAdd(STORE_TX, record);
     await logAction("ADD", amt, `Ajout: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
-    setStatus("Transaction enregistrée ✅");
+    setSaveMsg("Enregistement ok", "ok");
+    setStatus("Enregistement ok");
   }
 
   await refreshData();
