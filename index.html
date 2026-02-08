@@ -88,9 +88,64 @@
     }
     .kidBtn.active{
       border-color: #111827;
-      background: #111827;
-      color: #ffffff;
     }
+    /* 🎨 Couleurs enfants – très pâles + transition */
+    :root{
+      --lily-bg: #fde8f2;    /* rose très pâle */
+      --lily-border: #f5b6d2;
+
+      --victor-bg: #e9f2ff;  /* bleu très pâle */
+      --victor-border: #b7d4ff;
+    }
+
+    /* Boutons enfants (teinte même non-actif) */
+    .kidBtn.lily{
+      background: var(--lily-bg);
+      border-color: var(--lily-border);
+    }
+    .kidBtn.victor{
+      background: var(--victor-bg);
+      border-color: var(--victor-border);
+    }
+
+    /* Bouton actif (teinte un peu plus soutenue) */
+    .kidBtn.active.lily{
+      background: #f9cfe3;
+      color:#111827;
+    }
+    .kidBtn.active.victor{
+      background: #cfe2ff;
+      color:#111827;
+    }
+
+    /* Carte Saisie teintée selon enfant */
+    #entryCard{
+      transition: background-color .12s ease;
+    }
+    #entryCard.saisie-lily{
+      background: var(--lily-bg);
+    }
+    #entryCard.saisie-victor{
+      background: var(--victor-bg);
+    }
+
+    /* Inputs légèrement teintés aussi (avec transition douce) */
+    #entryCard input,
+    #entryCard select,
+    #entryCard textarea{
+      transition: background-color .12s ease;
+    }
+    #entryCard.saisie-lily input,
+    #entryCard.saisie-lily select,
+    #entryCard.saisie-lily textarea{
+      background: #fff7fb;
+    }
+    #entryCard.saisie-victor input,
+    #entryCard.saisie-victor select,
+    #entryCard.saisie-victor textarea{
+      background: #f6f9ff;
+    }
+
 
     /* Style pour les champs école */
     .school-fields {
@@ -146,8 +201,8 @@
 
   <!-- Barre enfant en HAUT (aucun sélectionné par défaut) -->
   <div class="kidBar">
-    <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
-    <button id="kidVictor" class="kidBtn" type="button">Victor</button>
+    <button id="kidLily" class="kidBtn lily" type="button">Lily-Rose</button>
+    <button id="kidVictor" class="kidBtn victor" type="button">Victor</button>
     <div class="saveWrap">
       <button id="saveDiskBtn" class="iconBtn" type="button" title="Enregistrer" aria-label="Enregistrer">💾</button>
       <div id="saveMsg" class="saveMsg" aria-live="polite"></div>
@@ -156,7 +211,7 @@
 
   <main>
     <!-- Saisie -->
-    <section class="card">
+    <section class="card" id="entryCard">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
         <div style="font-weight:1000;">
           Saisie
@@ -667,8 +722,13 @@ function calculateSchoolAmount() {
 function setActiveChild(childName) {
   ACTIVE_CHILD = childName;
 
+  const entryCard = $("entryCard");
+
   $("kidLily").classList.remove("active");
   $("kidVictor").classList.remove("active");
+
+  // reset thème saisie
+  if (entryCard) entryCard.classList.remove("saisie-lily", "saisie-victor");
 
   if (!childName) {
     lockEntryForm(true);
@@ -679,8 +739,10 @@ function setActiveChild(childName) {
 
   if (childName === "Lily-Rose") {
     $("kidLily").classList.add("active");
+    if (entryCard) entryCard.classList.add("saisie-lily");
   } else {
     $("kidVictor").classList.add("active");
+    if (entryCard) entryCard.classList.add("saisie-victor");
   }
 
   CFG.defaults.kid = childName; // on mémorise le dernier choisi (mais on ne sélectionne PAS au démarrage)
@@ -1345,4 +1407,3 @@ init();
 </script>
 </body>
 </html>
-
