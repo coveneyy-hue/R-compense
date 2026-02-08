@@ -248,7 +248,7 @@
       <div class="row" style="margin-top:10px;">
         <div>
           <label>Montant (peut être négatif)</label>
-          <input id="amtInput" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
+          <input id="amtInput" type="number" step="1" inputmode="numeric" placeholder="0" />
         </div>
         <div>
           <label>Description (obligatoire, max 100 caractères)</label>
@@ -329,13 +329,6 @@
           </table>
         </div>
       </details>
-    </section>
-
-    
-    <!-- Totaux -->
-    <section class="card">
-      <div class="totals" id="totals"></div>
-      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l'historique complet.</p>
     </section><!-- Journal des actions (AU-DESSOUS de l'historique) -->
     <section class="card">
       <details>
@@ -699,7 +692,7 @@ function calculateSchoolAmount() {
   const moyenne = parseFloat($("moyenneInput").value) || 0;
 
   if (note === 100) {
-    $("amtInput").value = "20.00";
+    $("amtInput").value = "20";
     return;
   }
 
@@ -707,12 +700,12 @@ function calculateSchoolAmount() {
     const difference = note - moyenne;
     if (difference > 0) {
       const montant = Math.min(difference * 1, 15);
-      $("amtInput").value = montant.toFixed(2);
+      $("amtInput").value = String(Math.round(montant));
     } else {
-      $("amtInput").value = "0.00";
+      $("amtInput").value = "0";
     }
   } else {
-    $("amtInput").value = "0.00";
+    $("amtInput").value = "0";
   }
 }
 
@@ -773,7 +766,7 @@ async function saveOrUpdate() {
 
   const dateVal = $("dateInput").value;
   const cat = $("catSelect").value;
-  const amt = parseFloat($("amtInput").value);
+  const amt = parseInt($("amtInput").value, 10);
   const desc = $("descInput").value.trim();
 
   const isEcole = (cat || "").toLowerCase().trim() === "école";
@@ -867,7 +860,7 @@ function cancelEdit() {
    Load / Delete / Edit
 ========================= */
 async function refreshData() {
-  ALL_DATA = await dbGetAll(STORE_TX);
+  ALL_DATA = (await dbGetAll(STORE_TX)).map(r => ({...r, amount: Math.round(Number(r.amount || 0))}));
   renderTable();
   await renderTotals();
   await renderLog();
@@ -985,7 +978,7 @@ function renderTable() {
       const tdAmt = document.createElement("td");
       tdAmt.className = "right";
       const amtClass = row.amount >= 0 ? "pos" : "neg";
-      tdAmt.innerHTML = `<span class="amt ${amtClass}">${row.amount.toFixed(2)} $</span>`;
+      tdAmt.innerHTML = `<span class="amt ${amtClass}">${row.amount} $</span>`;
       tr.appendChild(tdAmt);
 
       const tdDesc = document.createElement("td");
@@ -1005,27 +998,23 @@ function renderTable() {
 
   const filteredSum = filtered.reduce((s, r) => s + r.amount, 0);
   $("rowsCount").textContent = `${filtered.length} transaction(s)`;
-  $("filteredTotal").textContent = `${filteredSum.toFixed(2)} $`;
+  $("filteredTotal").textContent = `${filteredSum} $`;
 }
 
 async function renderTotals() {
-  const kids = CFG.kids;
-  const container = $("totals");
-  container.innerHTML = "";
+  // Met à jour le solde total directement dans les boutons Lily-Rose / Victor
+  const totals = {};
+  for (const kid of CFG.kids) totals[kid] = 0;
 
-  for (const kid of kids) {
-    const rows = ALL_DATA.filter(r => r.child === kid);
-    const total = rows.reduce((s, r) => s + r.amount, 0);
-    const amtClass = total >= 0 ? "pos" : "neg";
-
-    const box = document.createElement("div");
-    box.className = "totalBox";
-    box.innerHTML = `
-      <div class="name">${kid}</div>
-      <div class="amt ${amtClass}">${total.toFixed(2)} $</div>
-    `;
-    container.appendChild(box);
+  for (const r of ALL_DATA) {
+    if (!r || !totals.hasOwnProperty(r.child)) continue;
+    totals[r.child] += (Number.isFinite(r.amount) ? r.amount : 0);
   }
+
+  const lily = "Lily-Rose";
+  const victor = "Victor";
+  if ($("kidLily")) $("kidLily").textContent = `${lily} (${(totals[lily] ?? 0)}$)`;
+  if ($("kidVictor")) $("kidVictor").textContent = `${victor} (${(totals[victor] ?? 0)}$)`;
 }
 
 async function renderLog() {
@@ -1054,7 +1043,7 @@ async function renderLog() {
       const tdAmt = document.createElement("td");
       tdAmt.className = "right";
       const cls = entry.amount >= 0 ? "pos" : "neg";
-      tdAmt.innerHTML = `<span class="amt ${cls}">${entry.amount.toFixed(2)} $</span>`;
+      tdAmt.innerHTML = `<span class="amt ${cls}">${entry.amount} $</span>`;
       tr.appendChild(tdAmt);
 
       const tdDetails = document.createElement("td");
@@ -1242,7 +1231,7 @@ async function importJSON(file) {
       child: FIXED_KIDS.includes(String(r.child)) ? String(r.child) : FIXED_KIDS[0],
       date: String(r.date || ""),
       category: String(r.category || ""),
-      amount: Number(r.amount || 0),
+      amount: Math.round(Number(r.amount || 0)),
       desc: String(r.desc || "").slice(0,100),
       createdAt: Number(r.createdAt || Date.now()),
       updatedAt: r.updatedAt ? Number(r.updatedAt) : null
@@ -1256,7 +1245,7 @@ async function importJSON(file) {
       const safeL = {
         ts: Number(l.ts || Date.now()),
         action: String(l.action || "IMPORT"),
-        amount: Number(l.amount || 0),
+        amount: Math.round(Number(l.amount || 0)),
         details: String(l.details || "")
       };
       await dbAdd(STORE_LOG, safeL);
