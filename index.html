@@ -1,155 +1,1229 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<title>Gestion des dépenses enfants</title>
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#111827" />
+  <title>R-compense</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
+    header { padding: 14px 16px; background: #111827; color: #fff; }
+    header h1 { margin: 0; font-size: 18px; }
+
+    /* plus besoin de gros padding bas (barre enfant n'est plus fixed en bas) */
+    main { padding: 14px 16px 40px; max-width: 980px; margin: 0 auto; }
+
+    .card { background:#fff; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); margin-bottom: 12px; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display:block; font-size: 12px; color:#374151; margin-bottom: 6px; }
+
+    select, input, button, textarea {
+      width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 16px; background:#fff;
+      box-sizing: border-box;
     }
-    header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
+    input[type="number"] { text-align: right; }
+    button { cursor: pointer; border: 0; background:#111827; color:#fff; font-weight: 800; }
+    button.secondary { background:#e5e7eb; color:#111827; border: 1px solid #d1d5db; }
+    button.danger { background:#b91c1c; }
+    .actions { display:flex; gap: 10px; flex-wrap: wrap; }
+    .actions > * { flex: 1; min-width: 140px; }
+
+    .muted { color:#6b7280; font-size: 13px; }
+    .hint { font-size:12px; color:#6b7280; margin-top:6px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    .totals { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .totalBox { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
+    .totalBox .name { font-weight: 900; }
+    .totalBox .amt { font-size: 20px; font-weight: 1000; margin-top: 4px; }
+    .amt.pos { color:#065f46; }
+    .amt.neg { color:#b91c1c; }
+
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #f0f1f4; padding: 10px 6px; font-size: 14px; vertical-align: top; }
+    th { text-align:left; color:#374151; font-size: 12px; }
+    td.right, th.right { text-align:right; }
+
+    .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#f3f4f6; font-size: 12px; color:#111827; }
+    .smallBtn { padding:8px 10px; border-radius:10px; font-size: 13px; width:auto; }
+    .badgeEdit { display:inline-block; margin-left: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#111827; color:#fff; }
+
+    .toolbar { display:flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+    .toolbar > div { flex: 1; min-width: 160px; }
+    textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+
+    details summary { cursor: pointer; font-weight: 1000; }
+    details summary::-webkit-details-marker { display:none; }
+    details summary::before {
+      content: "▸";
+      display:inline-block;
+      margin-right: 8px;
+      color:#111827;
+      transform: translateY(-1px);
     }
-    .child-btn {
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: 1px solid #999;
-        background: #f4f4f4;
-        cursor: pointer;
+    details[open] summary::before { content: "▾"; }
+
+    /* Barre enfant (EN HAUT) */
+    .kidBar{
+      position: sticky;
+      top: 0;
+      left: 0; right: 0;
+      padding: 10px 12px;
+      background: rgba(246,247,251,.96);
+      border-bottom: 1px solid #e5e7eb;
+      backdrop-filter: blur(6px);
+      display: flex;
+      gap: 10px;
+      z-index: 9999;
     }
-    .child-btn.active {
-        background: #1976d2;
-        color: white;
-        border-color: #1976d2;
+    .kidBtn{
+      flex: 1;
+      border-radius: 14px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      color: #111827;
+      font-weight: 1000;
+      padding: 12px 12px;
     }
-    .save-icon {
-        margin-left: auto;
-        cursor: pointer;
-        font-size: 20px;
-        user-select: none;
+    .kidBtn.active{
+      border-color: #111827;
+      background: #111827;
+      color: #ffffff;
     }
-    .save-icon:hover {
-        opacity: 0.7;
+
+    /* Style pour les champs école */
+    .school-fields {
+      display: none;
+      margin-top: 10px;
     }
-</style>
+    .school-fields.visible {
+      display: block;
+    }
+  </style>
 </head>
-
 <body>
+  <header><h1>R-compense</h1></header>
 
-<header>
-    <button id="btnLily" class="child-btn active">Lily-Rose</button>
-    <button id="btnVictor" class="child-btn">Victor</button>
+  <!-- Barre enfant en HAUT (aucun sélectionné par défaut) -->
+  <div class="kidBar">
+    <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
+    <button id="kidVictor" class="kidBtn" type="button">Victor</button>
+  </div>
 
-    <!-- Icône Enregistrer -->
-    <span id="saveBtn" class="save-icon" title="Enregistrer">💾</span>
-</header>
+  <main>
+    <!-- Saisie -->
+    <section class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="font-weight:1000;">
+          Saisie
+          <span id="editBadge" class="badgeEdit" style="display:none;">MODE MODIFICATION</span>
+        </div>
+        <div class="muted" id="dbInfo"></div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Date</label>
+          <input id="dateInput" type="date" />
+        </div>
+        <div>
+          <label>Catégorie</label>
+          <select id="catSelect"></select>
+        </div>
+      </div>
+
+      <!-- Champs spécifiques pour la catégorie "école" -->
+      <div id="schoolFields" class="school-fields">
+        <div class="row">
+          <div>
+            <label>Note</label>
+            <input id="noteInput" type="number" step="1" min="0" max="100" placeholder="0" />
+          </div>
+          <div>
+            <label>Moyenne</label>
+            <input id="moyenneInput" type="number" step="1" min="0" max="100" placeholder="0" />
+          </div>
+        </div>
+        <div class="hint" style="margin-top:6px;">
+          Le montant sera calculé automatiquement selon les règles :
+          • Note ≥ 80 : 1$ par point au-dessus de la moyenne (max 15$)
+          • Note = 100 : 20$ automatiquement
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <div>
+          <label>Montant (peut être négatif)</label>
+          <input id="amtInput" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
+        </div>
+        <div>
+          <label>Description (obligatoire, max 100 caractères)</label>
+          <input id="descInput" type="text" maxlength="100" placeholder="Ex: lunch, défi, cadeau..." />
+          <div class="hint"><span id="descCount">0</span>/100</div>
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:12px;">
+        <button id="saveBtn" type="button">Enregistrer</button>
+        <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
+      </div>
+
+
+
+      <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
+      <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
+    </section>
+
+    <!-- Totaux -->
+    <section class="card">
+      <div class="totals" id="totals"></div>
+      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l'historique complet.</p>
+    </section>
+
+    <!-- Paramètres (AU-DESSUS de l'historique transactions) -->
+    <section class="card">
+      <details>
+        <summary>Paramètres (catégories, backup)</summary>
+
+        <div style="margin-top:10px;">
+          <label>Catégories (une par ligne)</label>
+          <textarea id="catsCfg"></textarea>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="saveCfgBtn" class="secondary" type="button">Enregistrer catégories</button>
+          <button id="resetCfgBtn" class="secondary" type="button">Remettre par défaut</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0;" />
+
+        <div class="row">
+          <div>
+            <label>Rappel backup (jours)</label>
+            <input id="backupDays" type="number" min="1" step="1" />
+            <div class="hint">Ex: 7 = rappel si aucun backup depuis 7 jours.</div>
+          </div>
+          <div>
+            <label>Dernier backup</label>
+            <input id="lastBackupDisplay" type="text" disabled />
+            <div class="hint">Mis à jour quand tu fais "Backup auto".</div>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
+          <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- Historique transactions (FERMÉ par défaut) -->
+    <section class="card">
+      <details id="txDetails">
+        <summary>Historique (transactions)</summary>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <div class="muted">
+            <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
+          </div>
+        </div>
+
+        <div class="toolbar" style="margin-top:10px;">
+          <div>
+            <label>Filtrer (enfant) — multi</label>
+            <select id="filterChild" multiple size="3"></select>
+            <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
+          </div>
+
+          <div>
+            <label>Filtrer (catégorie) — multi</label>
+            <select id="filterCat" multiple size="5"></select>
+          </div>
+
+          <div>
+            <label>Description contient</label>
+            <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
+          </div>
+
+          <div>
+            <label>Date début</label>
+            <input id="fromDate" type="date" />
+          </div>
+
+          <div>
+            <label>Date fin</label>
+            <input id="toDate" type="date" />
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtres</button>
+          <button id="clearFilterBtn" class="secondary" type="button">Effacer filtres</button>
+        </div>
+
+        <div style="overflow-x:auto; margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
+                <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
+                <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
+                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
+                <th>Description</th>
+                <th style="width:160px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- Journal des actions (AU-DESSOUS de l'historique) -->
+    <section class="card">
+      <details>
+        <summary>Journal des actions</summary>
+
+        <div style="margin-top:10px; overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th class="right">Montant</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
+          <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- Import/Export final -->
+    <section class="card">
+      <div class="actions">
+        <button id="exportBtn" class="secondary" type="button">Export complet (JSON)</button>
+        <button id="importBtn" class="secondary" type="button">Import JSON</button>
+      </div>
+      <input id="importFile" type="file" accept="application/json" style="display:none;" />
+    </section>
+  </main>
 
 <script>
-/* ===========================
-   Données et contexte
-=========================== */
-let currentChild = "Lily-Rose";
-let data = {
-    transactions: []
-};
+const FIXED_KIDS = ["Lily-Rose", "Victor"];
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Argent dépensé","Gâterie","Éducation financière"];
+const DB_NAME = "BudgetEnfantsDB_v2";
+const DB_VERSION = 2;
+const STORE_CONFIG = "config";
+const STORE_TX = "transactions";
+const STORE_LOG = "log";
 
-/* ===========================
-   UI enfants
-=========================== */
-document.getElementById("btnLily").onclick = () => setChild("Lily-Rose");
-document.getElementById("btnVictor").onclick = () => setChild("Victor");
+let db = null;
+/* kid par défaut = null (aucun sélectionné) */
+let CFG = { kids: FIXED_KIDS, cats: DEFAULT_CATS, defaults: { kid: null, cat: "Tâches ménagères" }, backup: { intervalDays: 7, lastBackupTs: null } };
+let ALL_DATA = [];
+let ACTIVE_CHILD = null;
+let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+let SORT = { col: "date", dir: "desc" };
+let EDIT_MODE = false;
+let EDIT_ID = null;
 
-function setChild(name) {
-    currentChild = name;
-    document.getElementById("btnLily").classList.toggle("active", name === "Lily-Rose");
-    document.getElementById("btnVictor").classList.toggle("active", name === "Victor");
+const $ = (id) => document.getElementById(id);
+
+function nowISO() {
+  return new Date().toISOString();
+}
+function todayISO() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function formatDateHuman(isoDate) {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
+  return `${yyyy}-${mm}-${dd}`;
+}
+function formatTS(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth()+1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const ss = pad(d.getSeconds());
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 }
 
-/* ===========================
-   Enregistrement
-=========================== */
-document.getElementById("saveBtn").onclick = saveTransaction;
+/* =========================
+   IndexedDB
+========================= */
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_CONFIG)) {
+        db.createObjectStore(STORE_CONFIG, { keyPath: "id" });
+      }
+      if (!db.objectStoreNames.contains(STORE_TX)) {
+        const txStore = db.createObjectStore(STORE_TX, { keyPath: "id", autoIncrement: true });
+        txStore.createIndex("child", "child", { unique: false });
+        txStore.createIndex("date", "date", { unique: false });
+        txStore.createIndex("category", "category", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_LOG)) {
+        db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
+      }
+    };
+  });
+}
 
-function saveTransaction() {
-    const categorie = "École"; // exemple
-    const note = 85;           // exemple
-    const moyenne = 82;        // exemple
-    const date = new Date();   // exemple
+async function dbGet(store, key) {
+  const tx = db.transaction(store, "readonly");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    if (categorie === "École") {
-        const duplicate = data.transactions.find(t =>
-            t.enfant === currentChild &&
-            t.categorie === "École" &&
-            t.note === note &&
-            t.moyenne === moyenne &&
-            Math.abs(new Date(t.date) - date) <= 31 * 24 * 60 * 60 * 1000
-        );
+async function dbPut(store, obj) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.put(obj);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-        if (duplicate) {
-            const ok = confirm(
-                `Doublon potentiel "Pour ${currentChild}, il y a déjà une note et une moyenne identique saisie à ${formatDate(duplicate.date)}". Voulez-vous tout de même continuer ?`
-            );
-            if (!ok) return;
-        }
+async function dbAdd(store, obj) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.add(obj);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbDelete(store, id) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbGetAll(store) {
+  const tx = db.transaction(store, "readonly");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function dbClear(store) {
+  const tx = db.transaction(store, "readwrite");
+  const st = tx.objectStore(store);
+  return new Promise((resolve, reject) => {
+    const req = st.clear();
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/* =========================
+   Config
+========================= */
+async function loadConfig() {
+  const obj = await dbGet(STORE_CONFIG, "main");
+  if (obj && obj.data) return obj.data;
+  return {
+    kids: FIXED_KIDS,
+    cats: DEFAULT_CATS,
+    defaults: { kid: null, cat: DEFAULT_CATS[0] },
+    backup: { intervalDays: 7, lastBackupTs: null }
+  };
+}
+
+async function saveConfig(cfg) {
+  await dbPut(STORE_CONFIG, { id: "main", data: cfg });
+}
+
+/* =========================
+   Logging actions
+========================= */
+async function logAction(actionName, amount, details) {
+  const entry = {
+    ts: Date.now(),
+    action: actionName,
+    amount: amount,
+    details: details || ""
+  };
+  await dbAdd(STORE_LOG, entry);
+}
+
+/* =========================
+   UI Helpers
+========================= */
+function setStatus(msg) {
+  $("statusMsg").textContent = msg;
+  setTimeout(() => { $("statusMsg").textContent = ""; }, 4000);
+}
+
+function setEditMode(on) {
+  EDIT_MODE = on;
+  $("editBadge").style.display = on ? "inline-block" : "none";
+  $("cancelEditBtn").style.display = on ? "inline-block" : "none";
+}
+
+function updateDescCounter() {
+  const len = $("descInput").value.length;
+  $("descCount").textContent = len;
+}
+
+function renderSelectOptions(selectEl, opts, selected) {
+  selectEl.innerHTML = "";
+  for (const opt of opts) {
+    const o = document.createElement("option");
+    o.value = opt;
+    o.textContent = opt;
+    if (opt === selected) o.selected = true;
+    selectEl.appendChild(o);
+  }
+}
+
+function getSelectedValues(selectEl) {
+  const arr = [];
+  for (const opt of selectEl.options) {
+    if (opt.selected) arr.push(opt.value);
+  }
+  return arr;
+}
+
+function setSelectedValues(selectEl, vals) {
+  for (const opt of selectEl.options) {
+    opt.selected = vals.includes(opt.value);
+  }
+}
+
+function renderFilterSelects() {
+  renderSelectOptions($("filterChild"), CFG.kids, "");
+  renderSelectOptions($("filterCat"), CFG.cats, "");
+  setSelectedValues($("filterChild"), []);
+  setSelectedValues($("filterCat"), []);
+}
+
+/* Verrouiller / déverrouiller la saisie tant qu'aucun enfant n'est choisi */
+function lockEntryForm(lock) {
+  const inputs = document.querySelectorAll(
+    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveBtn"
+  );
+  inputs.forEach(el => el.disabled = lock);
+
+  if (lock) {
+    setStatus("Sélectionne Lily ou Victor pour commencer 👆");
+  }
+}
+
+/* =========================
+   Afficher/masquer les champs école
+========================= */
+function toggleSchoolFields() {
+  const selectedCat = $("catSelect").value;
+  const schoolFields = $("schoolFields");
+
+  if ((selectedCat || "").toLowerCase().trim() === "école") {
+    schoolFields.classList.add("visible");
+  } else {
+    schoolFields.classList.remove("visible");
+    $("noteInput").value = "";
+    $("moyenneInput").value = "";
+  }
+}
+
+/* =========================
+   Calculer le montant automatiquement pour école
+========================= */
+function calculateSchoolAmount() {
+  const selectedCat = $("catSelect").value;
+
+  if ((selectedCat || "").toLowerCase().trim() !== "école") {
+    return;
+  }
+
+  const note = parseFloat($("noteInput").value) || 0;
+  const moyenne = parseFloat($("moyenneInput").value) || 0;
+
+  if (note === 100) {
+    $("amtInput").value = "20.00";
+    return;
+  }
+
+  if (note >= 80) {
+    const difference = note - moyenne;
+    if (difference > 0) {
+      const montant = Math.min(difference * 1, 15);
+      $("amtInput").value = montant.toFixed(2);
+    } else {
+      $("amtInput").value = "0.00";
     }
+  } else {
+    $("amtInput").value = "0.00";
+  }
+}
 
-    data.transactions.push({
-        enfant: currentChild,
-        categorie,
-        note,
-        moyenne,
-        date: date.toISOString()
+/* =========================
+   Active child
+========================= */
+function setActiveChild(childName) {
+  ACTIVE_CHILD = childName;
+
+  $("kidLily").classList.remove("active");
+  $("kidVictor").classList.remove("active");
+
+  if (!childName) {
+    lockEntryForm(true);
+    return;
+  }
+
+  lockEntryForm(false);
+
+  if (childName === "Lily-Rose") {
+    $("kidLily").classList.add("active");
+  } else {
+    $("kidVictor").classList.add("active");
+  }
+
+  CFG.defaults.kid = childName; // on mémorise le dernier choisi (mais on ne sélectionne PAS au démarrage)
+  saveConfig(CFG);
+
+  resetEntryForm();
+}
+
+function resetEntryForm() {
+  $("dateInput").value = todayISO();
+  $("catSelect").value = CFG.defaults.cat || CFG.cats[0];
+  $("amtInput").value = "";
+  $("descInput").value = "";
+  $("noteInput").value = "";
+  $("moyenneInput").value = "";
+  updateDescCounter();
+  toggleSchoolFields();
+}
+
+/* =========================
+   Save / Update
+========================= */
+async function saveOrUpdate() {
+  if (!ACTIVE_CHILD) {
+    return setStatus("Tu dois sélectionner un enfant avant d’enregistrer.");
+  }
+
+  const dateVal = $("dateInput").value;
+  const cat = $("catSelect").value;
+  const amt = parseFloat($("amtInput").value);
+  const desc = $("descInput").value.trim();
+
+  if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
+    return setStatus("Tous les champs sont obligatoires.");
+  }
+
+  const record = {
+    child: ACTIVE_CHILD,
+    date: dateVal,
+    category: cat,
+    amount: amt,
+    desc: desc.slice(0,100),
+    createdAt: Date.now(),
+    updatedAt: null
+  };
+
+  if (EDIT_MODE && EDIT_ID !== null) {
+    record.id = EDIT_ID;
+    const existing = await dbGet(STORE_TX, EDIT_ID);
+    if (existing) record.createdAt = existing.createdAt;
+    record.updatedAt = Date.now();
+    await dbPut(STORE_TX, record);
+    await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
+    setStatus("Transaction modifiée ✅");
+    setEditMode(false);
+    EDIT_ID = null;
+  } else {
+    await dbAdd(STORE_TX, record);
+    await logAction("ADD", amt, `Ajout: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
+    setStatus("Transaction enregistrée ✅");
+  }
+
+  await refreshData();
+  resetEntryForm();
+}
+
+function cancelEdit() {
+  setEditMode(false);
+  EDIT_ID = null;
+  resetEntryForm();
+  setStatus("Modification annulée.");
+}
+
+/* =========================
+   Load / Delete / Edit
+========================= */
+async function refreshData() {
+  ALL_DATA = await dbGetAll(STORE_TX);
+  renderTable();
+  await renderTotals();
+  await renderLog();
+  await updateDbInfo();
+}
+
+async function updateDbInfo() {
+  const txCount = ALL_DATA.length;
+  const logCount = (await dbGetAll(STORE_LOG)).length;
+  $("dbInfo").textContent = `${txCount} transactions • ${logCount} log`;
+}
+
+async function deleteRecord(id) {
+  if (!confirm("Supprimer cette transaction ?")) return;
+  const rec = await dbGet(STORE_TX, id);
+  if (!rec) return;
+  await dbDelete(STORE_TX, id);
+  await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category} | ${rec.desc}`);
+  await refreshData();
+  setStatus("Transaction supprimée ✅");
+}
+
+async function editRecord(id) {
+  const rec = await dbGet(STORE_TX, id);
+  if (!rec) return;
+  EDIT_ID = id;
+  setEditMode(true);
+
+  $("dateInput").value = rec.date;
+  $("catSelect").value = rec.category;
+  $("amtInput").value = rec.amount;
+  $("descInput").value = rec.desc;
+
+  toggleSchoolFields();
+  updateDescCounter();
+  setStatus("Mode modification activé.");
+
+  const kidToSelect = FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0];
+  setActiveChild(kidToSelect);
+}
+
+/* =========================
+   Render
+========================= */
+function applyFilters(data) {
+  let arr = data.slice();
+  if (FILTER.children.length > 0) {
+    arr = arr.filter(r => FILTER.children.includes(r.child));
+  }
+  if (FILTER.cats.length > 0) {
+    arr = arr.filter(r => FILTER.cats.includes(r.category));
+  }
+  if (FILTER.desc) {
+    const search = FILTER.desc.toLowerCase();
+    arr = arr.filter(r => r.desc.toLowerCase().includes(search));
+  }
+  if (FILTER.from) {
+    arr = arr.filter(r => r.date >= FILTER.from);
+  }
+  if (FILTER.to) {
+    arr = arr.filter(r => r.date <= FILTER.to);
+  }
+  return arr;
+}
+
+function sortData(data) {
+  const col = SORT.col;
+  const dir = SORT.dir;
+  data.sort((a, b) => {
+    let valA = a[col];
+    let valB = b[col];
+    if (col === "date") {
+      valA = new Date(valA).getTime();
+      valB = new Date(valB).getTime();
+    }
+    if (col === "amount") {
+      valA = parseFloat(valA);
+      valB = parseFloat(valB);
+    }
+    if (valA < valB) return dir === "asc" ? -1 : 1;
+    if (valA > valB) return dir === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderTable() {
+  const filtered = applyFilters(ALL_DATA);
+  sortData(filtered);
+
+  const tbody = $("txBody");
+  tbody.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="6" style="text-align:center; color:#6b7280;">Aucune transaction</td>`;
+    tbody.appendChild(tr);
+  } else {
+    for (const row of filtered) {
+      const tr = document.createElement("tr");
+
+      const tdChild = document.createElement("td");
+      tdChild.innerHTML = `<span class="pill">${row.child}</span>`;
+      tr.appendChild(tdChild);
+
+      const tdDate = document.createElement("td");
+      tdDate.textContent = formatDateHuman(row.date);
+      tr.appendChild(tdDate);
+
+      const tdCat = document.createElement("td");
+      tdCat.textContent = row.category;
+      tr.appendChild(tdCat);
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "right";
+      const amtClass = row.amount >= 0 ? "pos" : "neg";
+      tdAmt.innerHTML = `<span class="amt ${amtClass}">${row.amount.toFixed(2)} $</span>`;
+      tr.appendChild(tdAmt);
+
+      const tdDesc = document.createElement("td");
+      tdDesc.textContent = row.desc;
+      tr.appendChild(tdDesc);
+
+      const tdActions = document.createElement("td");
+      tdActions.innerHTML = `
+        <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
+        <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
+      `;
+      tr.appendChild(tdActions);
+
+      tbody.appendChild(tr);
+    }
+  }
+
+  const filteredSum = filtered.reduce((s, r) => s + r.amount, 0);
+  $("rowsCount").textContent = `${filtered.length} transaction(s)`;
+  $("filteredTotal").textContent = `${filteredSum.toFixed(2)} $`;
+}
+
+async function renderTotals() {
+  const kids = CFG.kids;
+  const container = $("totals");
+  container.innerHTML = "";
+
+  for (const kid of kids) {
+    const rows = ALL_DATA.filter(r => r.child === kid);
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    const amtClass = total >= 0 ? "pos" : "neg";
+
+    const box = document.createElement("div");
+    box.className = "totalBox";
+    box.innerHTML = `
+      <div class="name">${kid}</div>
+      <div class="amt ${amtClass}">${total.toFixed(2)} $</div>
+    `;
+    container.appendChild(box);
+  }
+}
+
+async function renderLog() {
+  const logs = await dbGetAll(STORE_LOG);
+  const tbody = $("logBody");
+  tbody.innerHTML = "";
+
+  if (logs.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="4" style="text-align:center;color:#6b7280;">Aucune entrée</td>`;
+    tbody.appendChild(tr);
+  } else {
+    const sorted = logs.slice().sort((a,b) => b.ts - a.ts);
+    for (const entry of sorted) {
+      const tr = document.createElement("tr");
+
+      const tdTs = document.createElement("td");
+      tdTs.textContent = formatTS(entry.ts);
+      tdTs.style.fontSize = "12px";
+      tr.appendChild(tdTs);
+
+      const tdAction = document.createElement("td");
+      tdAction.innerHTML = `<span class="pill">${entry.action}</span>`;
+      tr.appendChild(tdAction);
+
+      const tdAmt = document.createElement("td");
+      tdAmt.className = "right";
+      const cls = entry.amount >= 0 ? "pos" : "neg";
+      tdAmt.innerHTML = `<span class="amt ${cls}">${entry.amount.toFixed(2)} $</span>`;
+      tr.appendChild(tdAmt);
+
+      const tdDetails = document.createElement("td");
+      tdDetails.textContent = entry.details;
+      tdDetails.style.fontSize = "12px";
+      tr.appendChild(tdDetails);
+
+      tbody.appendChild(tr);
+    }
+  }
+}
+
+/* =========================
+   Settings
+========================= */
+async function loadSettingsUI() {
+  $("catsCfg").value = CFG.cats.join("\n");
+  $("backupDays").value = CFG.backup?.intervalDays || 7;
+  $("lastBackupDisplay").value = CFG.backup?.lastBackupTs
+    ? formatTS(CFG.backup.lastBackupTs)
+    : "Jamais";
+}
+
+async function saveSettingsFromUI() {
+  const raw = $("catsCfg").value.trim();
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return setStatus("Au moins une catégorie.");
+  CFG.cats = lines;
+  if (!CFG.cats.includes(CFG.defaults.cat)) {
+    CFG.defaults.cat = CFG.cats[0];
+  }
+  await saveConfig(CFG);
+  await initUIAfterConfig();
+  setStatus("Catégories enregistrées ✅");
+}
+
+async function resetSettingsToDefault() {
+  if (!confirm("Remettre les catégories par défaut ?")) return;
+  CFG.cats = DEFAULT_CATS.slice();
+  CFG.defaults.cat = DEFAULT_CATS[0];
+  await saveConfig(CFG);
+  await initUIAfterConfig();
+  setStatus("Catégories par défaut restaurées ✅");
+}
+
+/* =========================
+   Backup reminder
+========================= */
+async function updateBackupUI() {
+  const last = CFG.backup?.lastBackupTs;
+  $("lastBackupDisplay").value = last ? formatTS(last) : "Jamais";
+}
+
+async function saveBackupReminderFromUI() {
+  const days = parseInt($("backupDays").value, 10);
+  if (!Number.isFinite(days) || days < 1) return setStatus("Intervalle invalide.");
+  CFG.backup.intervalDays = days;
+  await saveConfig(CFG);
+  setStatus("Rappel backup enregistré ✅");
+}
+
+function maybeRemindBackup() {
+  const last = CFG.backup?.lastBackupTs;
+  const interval = CFG.backup?.intervalDays || 7;
+  if (last === null) {
+    $("backupInfo").textContent = "⚠️ Aucun backup fait. Pense à en faire un régulièrement !";
+    return;
+  }
+  const now = Date.now();
+  const elapsed = now - last;
+  const elapsedDays = elapsed / (1000 * 60 * 60 * 24);
+  if (elapsedDays >= interval) {
+    $("backupInfo").textContent = `⚠️ Dernier backup il y a ${Math.floor(elapsedDays)} jours. Temps de refaire un backup !`;
+  } else {
+    $("backupInfo").textContent = `✅ Backup OK (il y a ${Math.floor(elapsedDays)} jours).`;
+  }
+}
+
+async function backupNow() {
+  await exportJSON();
+  await exportCSV();
+  CFG.backup.lastBackupTs = Date.now();
+  await saveConfig(CFG);
+  await updateBackupUI();
+  maybeRemindBackup();
+  setStatus("Backup terminé (JSON + CSV) ✅");
+}
+
+/* =========================
+   Export CSV
+========================= */
+async function exportCSV() {
+  const rows = await dbGetAll(STORE_TX);
+  let csv = "Enfant,Date,Catégorie,Montant,Description,Créé le,Modifié le\n";
+  for (const r of rows) {
+    const child = r.child || "";
+    const date = r.date || "";
+    const cat = r.category || "";
+    const amt = r.amount || 0;
+    const desc = (r.desc || "").replace(/"/g, '""');
+    const createdAt = formatTS(r.createdAt);
+    const updatedAt = r.updatedAt ? formatTS(r.updatedAt) : "";
+    csv += `"${child}","${date}","${cat}","${amt}","${desc}","${createdAt}","${updatedAt}"\n`;
+  }
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `budget-enfants-${todayISO()}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  await logAction("EXPORT_CSV", 0, "Export CSV des transactions");
+}
+
+/* =========================
+   Import / Export JSON
+========================= */
+async function exportJSON() {
+  const payload = {
+    version: 1,
+    exportedAt: nowISO(),
+    cfg: CFG,
+    tx: await dbGetAll(STORE_TX),
+    log: await dbGetAll(STORE_LOG)
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `budget-enfants-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  await logAction("EXPORT", 0, "Export JSON complet (transactions + journal)");
+  await refreshData();
+  setStatus("Export prêt ✅");
+}
+
+async function exportLogOnly() {
+  const payload = { exportedAt: nowISO(), log: await dbGetAll(STORE_LOG) };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `journal-budget-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+
+  setStatus("Export journal prêt ✅");
+}
+
+async function importJSON(file) {
+  const text = await file.text();
+  let payload;
+  try { payload = JSON.parse(text); } catch { return setStatus("Fichier JSON invalide."); }
+  if (!payload || !Array.isArray(payload.tx) || !payload.cfg) return setStatus("JSON non reconnu.");
+
+  CFG = payload.cfg;
+  CFG.kids = FIXED_KIDS;
+  CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+
+  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats[0] };
+  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
+  if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
+
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
+  if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+
+  await saveConfig(CFG);
+
+  await dbClear(STORE_TX);
+  await dbClear(STORE_LOG);
+
+  for (const r of payload.tx) {
+    const safe = {
+      child: FIXED_KIDS.includes(String(r.child)) ? String(r.child) : FIXED_KIDS[0],
+      date: String(r.date || ""),
+      category: String(r.category || ""),
+      amount: Number(r.amount || 0),
+      desc: String(r.desc || "").slice(0,100),
+      createdAt: Number(r.createdAt || Date.now()),
+      updatedAt: r.updatedAt ? Number(r.updatedAt) : null
+    };
+    if (!safe.date || !safe.category || !Number.isFinite(safe.amount) || !safe.desc) continue;
+    await dbAdd(STORE_TX, safe);
+  }
+
+  if (Array.isArray(payload.log)) {
+    for (const l of payload.log) {
+      const safeL = {
+        ts: Number(l.ts || Date.now()),
+        action: String(l.action || "IMPORT"),
+        amount: Number(l.amount || 0),
+        details: String(l.details || "")
+      };
+      await dbAdd(STORE_LOG, safeL);
+    }
+  }
+
+  await logAction("IMPORT", 0, "Import JSON complet (transactions + journal)");
+  await initUIAfterConfig();
+  setStatus("Import terminé ✅");
+}
+
+/* =========================
+   Log actions UI
+========================= */
+async function clearLog() {
+  if (!confirm("Vider le journal des actions ?")) return;
+  await dbClear(STORE_LOG);
+  await refreshData();
+  setStatus("Journal vidé ✅");
+}
+
+/* =========================
+   Init
+========================= */
+async function initUIAfterConfig() {
+  $("dateInput").value = todayISO();
+
+  renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
+
+  FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+  renderFilterSelects();
+  $("fromDate").value = "";
+  $("toDate").value = "";
+  $("filterDesc").value = "";
+
+  await loadSettingsUI();
+  await refreshData();
+
+  setEditMode(false);
+  updateDescCounter();
+
+  await updateBackupUI();
+  maybeRemindBackup();
+
+  /* IMPORTANT: aucun enfant sélectionné au démarrage */
+  setActiveChild(null);
+  resetEntryForm();
+  lockEntryForm(true);
+
+  toggleSchoolFields();
+}
+
+async function init() {
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  }
+
+  db = await openDB();
+
+  CFG = await loadConfig();
+
+  CFG.kids = FIXED_KIDS;
+  CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+
+  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
+  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
+
+  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
+  if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
+  if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+
+  await initUIAfterConfig();
+
+  $("saveBtn").addEventListener("click", saveOrUpdate);
+  $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
+  $("cancelEditBtn").addEventListener("click", cancelEdit);
+  $("descInput").addEventListener("input", updateDescCounter);
+
+  $("catSelect").addEventListener("change", toggleSchoolFields);
+  $("noteInput").addEventListener("input", calculateSchoolAmount);
+  $("moyenneInput").addEventListener("input", calculateSchoolAmount);
+
+  $("backupNowBtn").addEventListener("click", backupNow);
+  $("backupNowBtn2").addEventListener("click", backupNow);
+  $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
+
+  $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
+  $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
+
+  $("applyFilterBtn").addEventListener("click", () => {
+    FILTER.children = getSelectedValues($("filterChild"));
+    FILTER.cats = getSelectedValues($("filterCat"));
+    FILTER.desc = $("filterDesc").value || "";
+    FILTER.from = $("fromDate").value || "";
+    FILTER.to = $("toDate").value || "";
+    renderTable();
+  });
+
+  $("clearFilterBtn").addEventListener("click", () => {
+    FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+
+    setSelectedValues($("filterChild"), []);
+    setSelectedValues($("filterCat"), []);
+    $("filterDesc").value = "";
+    $("fromDate").value = "";
+    $("toDate").value = "";
+
+    renderTable();
+  });
+
+  $("exportBtn").addEventListener("click", exportJSON);
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    await importJSON(f);
+    e.target.value = "";
+  });
+
+  $("clearLogBtn").addEventListener("click", clearLog);
+  $("exportLogBtn").addEventListener("click", exportLogOnly);
+
+  $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
+  $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
+
+  document.querySelectorAll('button[data-sort]').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const col = btn.getAttribute("data-sort");
+      if (SORT.col === col) {
+        SORT.dir = (SORT.dir === "asc") ? "desc" : "asc";
+      } else {
+        SORT.col = col;
+        SORT.dir = "asc";
+        if (col === "date") SORT.dir = "desc";
+      }
+      renderTable();
     });
+  });
 
-    saveData();
-
-    // ✅ MESSAGE AJOUTÉ ICI
-    showToast("Enregistrement complété");
+  $("amtInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
+  $("descInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
 }
 
-/* ===========================
-   Persistance
-=========================== */
-function saveData() {
-    localStorage.setItem("data", JSON.stringify(data));
-}
-
-/* ===========================
-   Toast message
-=========================== */
-function showToast(message) {
-    const toast = document.createElement("div");
-    toast.textContent = message;
-    toast.style.position = "fixed";
-    toast.style.top = "16px";
-    toast.style.right = "16px";
-    toast.style.padding = "10px 14px";
-    toast.style.background = "#2e7d32";
-    toast.style.color = "white";
-    toast.style.borderRadius = "6px";
-    toast.style.zIndex = 1000;
-    toast.style.fontSize = "14px";
-    toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
-
-    document.body.appendChild(toast);
-
-    setTimeout(() => toast.remove(), 2000);
-}
-
-/* ===========================
-   Utilitaires
-=========================== */
-function formatDate(d) {
-    const dt = new Date(d);
-    return dt.toISOString().substring(0, 10);
-}
+init();
 </script>
-
 </body>
 </html>
+
