@@ -332,7 +332,11 @@
     </section>
 
     
-    <!-- Journal des actions (AU-DESSOUS de l'historique) -->
+    <!-- Totaux -->
+    <section class="card">
+      <div class="totals" id="totals"></div>
+      <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l'historique complet.</p>
+    </section><!-- Journal des actions (AU-DESSOUS de l'historique) -->
     <section class="card">
       <details>
         <summary>Journal des actions</summary>
@@ -849,7 +853,6 @@ Voulez-vous tout de même continuer ?`;
   }
 
   await refreshData();
-  updateKidButtonsTotals();
   resetEntryForm();
 }
 
@@ -863,29 +866,11 @@ function cancelEdit() {
 /* =========================
    Load / Delete / Edit
 ========================= */
-
-function updateKidButtonsTotals() {
-  const totals = {};
-  for (const k of CFG.kids) totals[k] = 0;
-
-  for (const r of ALL_DATA) {
-    if (totals[r.child] !== undefined) {
-      totals[r.child] += Number(r.amount || 0);
-    }
-  }
-
-  const lilyAmt = (totals["Lily-Rose"] || 0).toFixed(2);
-  const victorAmt = (totals["Victor"] || 0).toFixed(2);
-
-  $("kidLily").textContent = `Lily-Rose (${lilyAmt} $)`;
-  $("kidVictor").textContent = `Victor (${victorAmt} $)`;
-}
-
 async function refreshData() {
-  updateKidButtonsTotals();
   ALL_DATA = await dbGetAll(STORE_TX);
   renderTable();
-await renderLog();
+  await renderTotals();
+  await renderLog();
   await updateDbInfo();
 }
 
@@ -902,7 +887,6 @@ async function deleteRecord(id) {
   await dbDelete(STORE_TX, id);
   await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category} | ${rec.desc}`);
   await refreshData();
-  updateKidButtonsTotals();
   setStatus("Transaction supprimée ✅");
 }
 
@@ -1024,6 +1008,24 @@ function renderTable() {
   $("filteredTotal").textContent = `${filteredSum.toFixed(2)} $`;
 }
 
+async function renderTotals() {
+  const kids = CFG.kids;
+  const container = $("totals");
+  container.innerHTML = "";
+
+  for (const kid of kids) {
+    const rows = ALL_DATA.filter(r => r.child === kid);
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    const amtClass = total >= 0 ? "pos" : "neg";
+
+    const box = document.createElement("div");
+    box.className = "totalBox";
+    box.innerHTML = `
+      <div class="name">${kid}</div>
+      <div class="amt ${amtClass}">${total.toFixed(2)} $</div>
+    `;
+    container.appendChild(box);
+  }
 }
 
 async function renderLog() {
@@ -1194,7 +1196,6 @@ async function exportJSON() {
 
   await logAction("EXPORT", 0, "Export JSON complet (transactions + journal)");
   await refreshData();
-  updateKidButtonsTotals();
   setStatus("Export prêt ✅");
 }
 
@@ -1274,7 +1275,6 @@ async function clearLog() {
   if (!confirm("Vider le journal des actions ?")) return;
   await dbClear(STORE_LOG);
   await refreshData();
-  updateKidButtonsTotals();
   setStatus("Journal vidé ✅");
 }
 
@@ -1294,7 +1294,6 @@ async function initUIAfterConfig() {
 
   await loadSettingsUI();
   await refreshData();
-  updateKidButtonsTotals();
 
   setEditMode(false);
   updateDescCounter();
