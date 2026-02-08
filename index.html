@@ -117,22 +117,17 @@
       max-width: 140px;
       line-height: 1.1;
     }
-.saveMsg.show{
-  opacity:1;
-  transform: translateY(0);
-}
+    .saveMsg.show{ opacity:1; transform: translateY(0); }
+    .saveMsg.ok{ color:#d1fae5; }     /* vert très doux */
+    .saveMsg.warn{ color:#fde68a; }   /* jaune doux */
 
-/* ✅ OK – vert foncé */
-.saveMsg.ok{
-  color:#065f46;   /* vert foncé lisible */
-}
 
-/* ⚠️ Warning – jaune/brun foncé */
-.saveMsg.warn{
-  color:#92400e;   /* jaune/brun foncé */
-}
+    /* Historique: filtres masqués par défaut (clic sur l’icône filtre) */
+    .filtersWrap{ display:none; margin-top:10px; }
+    .filtersWrap.show{ display:block; }
+    .iconOnly{ width:42px; padding:8px 0; }
 
-</style>
+  </style>
 </head>
 <body>
   <header><h1>R-compense</h1></header>
@@ -190,12 +185,12 @@
 
       <div class="row" style="margin-top:10px;">
         <div>
-          <label>Montant</label>
+          <label>Montant (peut être négatif)</label>
           <input id="amtInput" type="number" step="0.01" inputmode="decimal" placeholder="0.00" />
         </div>
         <div>
-          <label>Description</label>
-          <input id="descInput" type="text" maxlength="100"/>
+          <label>Description (obligatoire, max 100 caractères)</label>
+          <input id="descInput" type="text" maxlength="100" placeholder="Ex: lunch, défi, cadeau..." />
           <div class="hint"><span id="descCount">0</span>/100</div>
         </div>
       </div>
@@ -207,13 +202,107 @@
       <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
     </section>
 
+<!-- Historique transactions (OUVERT par défaut, filtres masqués par défaut) -->
+    <section class="card">
+      <details id="txDetails" open>
+        <summary>Historique (transactions)</summary>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <div class="muted">
+            <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
+          </div>
+          <button id="toggleFiltersBtn" class="secondary smallBtn iconOnly" type="button" title="Afficher/masquer les filtres" aria-label="Filtres"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+        </div>
+
+        
+        <div id="filtersWrap" class="filtersWrap">
+<div class="toolbar" style="margin-top:10px;">
+          <div>
+            <label>Filtrer (enfant) — multi</label>
+            <select id="filterChild" multiple size="3"></select>
+            <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
+          </div>
+
+          <div>
+            <label>Filtrer (catégorie) — multi</label>
+            <select id="filterCat" multiple size="5"></select>
+          </div>
+
+          <div>
+            <label>Description contient</label>
+            <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
+          </div>
+
+          <div>
+            <label>Date début</label>
+            <input id="fromDate" type="date" />
+          </div>
+
+          <div>
+            <label>Date fin</label>
+            <input id="toDate" type="date" />
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="applyFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Appliquer filtres" aria-label="Appliquer filtres">✓</button>
+          <button id="clearFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Effacer filtres" aria-label="Effacer filtres">🧹</button>
+        </div>
+        </div>
+
+
+        <div style="overflow-x:auto; margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
+                <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
+                <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
+                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
+                <th>Description</th>
+                <th style="width:160px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    
     <!-- Totaux -->
     <section class="card">
       <div class="totals" id="totals"></div>
       <p class="muted" style="margin:10px 0 0;">Totaux calculés sur l'historique complet.</p>
+    </section><!-- Journal des actions (AU-DESSOUS de l'historique) -->
+    <section class="card">
+      <details>
+        <summary>Journal des actions</summary>
+
+        <div style="margin-top:10px; overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th class="right">Montant</th>
+                <th>Détails</th>
+              </tr>
+            </thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
+          <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
+        </div>
+      </details>
     </section>
 
-    <!-- Paramètres (AU-DESSUS de l'historique transactions) -->
+    
+
+    <!-- Paramètres (SOUS le journal des actions) -->
     <section class="card">
       <details>
         <summary>Paramètres (catégories, backup)</summary>
@@ -246,94 +335,6 @@
         <div class="actions" style="margin-top:10px;">
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
           <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
-        </div>
-      </details>
-    </section>
-
-    <!-- Historique transactions (FERMÉ par défaut) -->
-    <section class="card">
-      <details id="txDetails">
-        <summary>Historique (transactions)</summary>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;">
-          <div class="muted">
-            <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
-          </div>
-        </div>
-
-        <div class="toolbar" style="margin-top:10px;">
-          <div>
-            <label>Filtrer (enfant) — multi</label>
-            <select id="filterChild" multiple size="3"></select>
-            <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
-          </div>
-
-          <div>
-            <label>Filtrer (catégorie) — multi</label>
-            <select id="filterCat" multiple size="5"></select>
-          </div>
-
-          <div>
-            <label>Description contient</label>
-            <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
-          </div>
-
-          <div>
-            <label>Date début</label>
-            <input id="fromDate" type="date" />
-          </div>
-
-          <div>
-            <label>Date fin</label>
-            <input id="toDate" type="date" />
-          </div>
-        </div>
-
-        <div class="actions" style="margin-top:10px;">
-          <button id="applyFilterBtn" class="secondary" type="button">Appliquer filtres</button>
-          <button id="clearFilterBtn" class="secondary" type="button">Effacer filtres</button>
-        </div>
-
-        <div style="overflow-x:auto; margin-top:10px;">
-          <table>
-            <thead>
-              <tr>
-                <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
-                <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
-                <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
-                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
-                <th>Description</th>
-                <th style="width:160px;">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="txBody"></tbody>
-          </table>
-        </div>
-      </details>
-    </section>
-
-    <!-- Journal des actions (AU-DESSOUS de l'historique) -->
-    <section class="card">
-      <details>
-        <summary>Journal des actions</summary>
-
-        <div style="margin-top:10px; overflow-x:auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Timestamp</th>
-                <th>Action</th>
-                <th class="right">Montant</th>
-                <th>Détails</th>
-              </tr>
-            </thead>
-            <tbody id="logBody"></tbody>
-          </table>
-        </div>
-
-        <div class="actions" style="margin-top:10px;">
-          <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
-          <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
         </div>
       </details>
     </section>
@@ -1272,6 +1273,13 @@ $("backupNowBtn2").addEventListener("click", backupNow);
 
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
+  // Toggle affichage des filtres dans l’historique
+  if ($("toggleFiltersBtn")) {
+    $("toggleFiltersBtn").addEventListener("click", () => {
+      $("filtersWrap").classList.toggle("show");
+    });
+  }
+
 
   $("applyFilterBtn").addEventListener("click", () => {
     FILTER.children = getSelectedValues($("filterChild"));
@@ -1330,6 +1338,3 @@ init();
 </script>
 </body>
 </html>
-
-
-
