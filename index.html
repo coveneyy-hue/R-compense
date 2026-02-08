@@ -643,8 +643,43 @@ async function saveOrUpdate() {
   const amt = parseFloat($("amtInput").value);
   const desc = $("descInput").value.trim();
 
+  const isEcole = (cat || "").toLowerCase().trim() === "école";
+  let note = null;
+  let moyenne = null;
+  if (isEcole) {
+    note = parseFloat($("noteInput").value);
+    moyenne = parseFloat($("moyenneInput").value);
+    if (!Number.isFinite(note) || !Number.isFinite(moyenne)) {
+      return setStatus("Pour École, la note et la moyenne sont obligatoires.");
+    }
+  }
+
   if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
     return setStatus("Tous les champs sont obligatoires.");
+  }
+
+  // Doublon potentiel pour École: même note+moyenne, même enfant, date dans un intervalle d'1 mois
+  if (isEcole) {
+    const baseDate = new Date(dateVal + "T00:00:00");
+    const allTx = await dbGetAll(STORE_TX);
+    const ONE_MONTH_MS = 31 * 24 * 60 * 60 * 1000;
+    const dup = allTx
+      .filter(r => r && r.child === ACTIVE_CHILD)
+      .filter(r => ((r.category || "").toLowerCase().trim() === "école"))
+      .filter(r => !(EDIT_MODE && EDIT_ID !== null && r.id === EDIT_ID))
+      .find(r =>
+        Number.isFinite(r.note) && Number.isFinite(r.moyenne) &&
+        Math.abs(r.note - note) < 1e-9 && Math.abs(r.moyenne - moyenne) < 1e-9 &&
+        Math.abs(new Date(r.date + "T00:00:00") - baseDate) <= ONE_MONTH_MS
+      );
+    if (dup) {
+      const msg = `Doublon potentiel "Pour ${ACTIVE_CHILD}, il y a déjà une note et une moyenne identique saisie à ${dup.date}". Voulez-vous tout de même continuer ?`;
+      const ok = window.confirm(msg);
+      if (!ok) {
+        setStatus("Enregistrement annulé.");
+        return;
+      }
+    }
   }
 
   const record = {
@@ -653,6 +688,8 @@ async function saveOrUpdate() {
     category: cat,
     amount: amt,
     desc: desc.slice(0,100),
+    note: isEcole ? note : null,
+    moyenne: isEcole ? moyenne : null,
     createdAt: Date.now(),
     updatedAt: null
   };
@@ -721,6 +758,8 @@ async function editRecord(id) {
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
   $("descInput").value = rec.desc;
+  $("noteInput").value = (rec.note ?? "");
+  $("moyenneInput").value = (rec.moyenne ?? "");
 
   toggleSchoolFields();
   updateDescCounter();
