@@ -100,7 +100,11 @@
     .school-fields.visible {
       display: block;
     }
-  </style>
+  
+    .iconBtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
+    .iconBtn:hover{ background: rgba(255,255,255,0.18); }
+    .iconBtn:active{ transform: translateY(1px); }
+</style>
 </head>
 <body>
   <header><h1>R-compense</h1></header>
@@ -109,6 +113,7 @@
   <div class="kidBar">
     <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn" type="button">Victor</button>
+    <button id="saveDiskBtn" class="iconBtn" type="button" title="Enregistrer" aria-label="Enregistrer">💾</button>
   </div>
 
   <main>
@@ -160,7 +165,6 @@
       </div>
 
       <div class="actions" style="margin-top:12px;">
-        <button id="saveBtn" type="button">Enregistrer</button>
         <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
       </div>
       <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
@@ -530,7 +534,7 @@ function renderFilterSelects() {
 /* Verrouiller / déverrouiller la saisie tant qu'aucun enfant n'est choisi */
 function lockEntryForm(lock) {
   const inputs = document.querySelectorAll(
-    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveBtn"
+    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveDiskBtn"
   );
   inputs.forEach(el => el.disabled = lock);
 
@@ -1183,7 +1187,7 @@ async function init() {
 
   await initUIAfterConfig();
 
-  $("saveBtn").addEventListener("click", saveOrUpdate);
+  $("saveDiskBtn").addEventListener("click", saveOrUpdate);
 $("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
 
@@ -1253,4 +1257,3 @@ init();
 </script>
 </body>
 </html>
-
