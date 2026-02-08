@@ -170,7 +170,8 @@
       </div>
 
       <div class="actions" style="margin-top:10px;">
-<button id="backupNowBtn" class="secondary" type="button">Backup</button>
+        <button id="resetBtn" class="secondary" type="button">Réinitialiser</button>
+        <button id="backupNowBtn" class="secondary" type="button">Backup</button>
       </div>
 
       <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
@@ -215,7 +216,8 @@
 
         <div class="actions" style="margin-top:10px;">
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
-</div>
+          <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
+        </div>
       </details>
     </section>
 
@@ -302,7 +304,7 @@
 
         <div class="actions" style="margin-top:10px;">
           <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
-          <button id="exportLogBtn" class="secondary" type="button">Export</button>
+          <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
         </div>
       </details>
     </section>
@@ -310,8 +312,8 @@
     <!-- Import/Export final -->
     <section class="card">
       <div class="actions">
-        <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
-        <button id="importBtn" class="secondary" type="button">Import</button>
+        <button id="exportBtn" class="secondary" type="button">Export complet (JSON)</button>
+        <button id="importBtn" class="secondary" type="button">Import JSON</button>
       </div>
       <input id="importFile" type="file" accept="application/json" style="display:none;" />
     </section>
@@ -1154,7 +1156,7 @@ async function init() {
   await initUIAfterConfig();
 
   $("saveBtn").addEventListener("click", saveOrUpdate);
-resetEntryForm(); });
+  $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
   $("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
 
@@ -1189,7 +1191,9 @@ resetEntryForm(); });
 
     renderTable();
   });
-$("importBtn").addEventListener("click", () => $("importFile").click());
+
+  $("exportBtn").addEventListener("click", exportJSON);
+  $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
