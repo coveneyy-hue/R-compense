@@ -117,9 +117,21 @@
       max-width: 140px;
       line-height: 1.1;
     }
-    .saveMsg.show{ opacity:1; transform: translateY(0); }
-    .saveMsg.ok{ color:#d1fae5; }     /* vert très doux */
-    .saveMsg.warn{ color:#fde68a; }   /* jaune doux */
+.saveMsg.show{
+  opacity:1;
+  transform: translateY(0);
+}
+
+/* ✅ OK – vert foncé */
+.saveMsg.ok{
+  color:#065f46;   /* vert foncé lisible */
+}
+
+/* ⚠️ Warning – jaune/brun foncé */
+.saveMsg.warn{
+  color:#92400e;   /* jaune/brun foncé */
+}
+
 
 
     /* Historique: filtres masqués par défaut (clic sur l’icône filtre) */
@@ -175,11 +187,6 @@
             <label>Moyenne</label>
             <input id="moyenneInput" type="number" step="1" min="0" max="100" placeholder="0" />
           </div>
-        </div>
-        <div class="hint" style="margin-top:6px;">
-          Le montant sera calculé automatiquement selon les règles :
-          • Note ≥ 80 : 1$ par point au-dessus de la moyenne (max 15$)
-          • Note = 100 : 20$ automatiquement
         </div>
       </div>
 
@@ -342,8 +349,8 @@
     <!-- Import/Export final -->
     <section class="card">
       <div class="actions">
-        <button id="exportBtn" class="secondary" type="button">Export complet (JSON + CSV)</button>
-        <button id="importBtn" class="secondary" type="button">Import JSON</button>
+        <button id="exportBtn" class="secondary" type="button">Export</button>
+        <button id="importBtn" class="secondary" type="button">Import</button>
       </div>
       <input id="importFile" type="file" accept="application/json" style="display:none;" />
     </section>
@@ -1338,3 +1345,4 @@ init();
 </script>
 </body>
 </html>
+
