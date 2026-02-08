@@ -92,9 +92,13 @@ function saveTransaction() {
         );
 
         if (duplicate) {
-            const ok = confirm(
-                `Doublon potentiel "Pour ${currentChild}, il y a déjà une note et une moyenne identique saisie à ${formatDate(duplicate.date)}". Voulez-vous tout de même continuer ?`
-            );
+const ok = confirm(
+  `Doublon potentiel\n` +
+  `Enfant: ${currentChild}\n` +
+  `Description: ${description}\n` +
+  `Une note et une moyenne identiques existent déjà (saisie le ${formatDate(duplicate.date)}).\n\n` +
+  `Voulez-vous tout de même continuer ?`
+);
             if (!ok) return;
         }
     }
@@ -153,3 +157,4 @@ function formatDate(d) {
 
 </body>
 </html>
+
