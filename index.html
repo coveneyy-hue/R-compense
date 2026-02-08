@@ -100,7 +100,11 @@
     .school-fields.visible {
       display: block;
     }
-  </style>
+  
+    .iconBtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
+    .iconBtn:hover{ background: rgba(255,255,255,0.18); }
+    .iconBtn:active{ transform: translateY(1px); }
+</style>
 </head>
 <body>
   <header><h1>R-compense</h1></header>
@@ -109,6 +113,7 @@
   <div class="kidBar">
     <button id="kidLily" class="kidBtn" type="button">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn" type="button">Victor</button>
+    <button id="saveDiskBtn" class="iconBtn" type="button" title="Enregistrer" aria-label="Enregistrer">💾</button>
   </div>
 
   <main>
@@ -165,12 +170,8 @@
       </div>
 
       <div class="actions" style="margin-top:12px;">
-        <button id="saveBtn" type="button">Enregistrer</button>
         <button id="cancelEditBtn" class="secondary" type="button" style="display:none;">Annuler modif</button>
       </div>
-
-
-
       <div style="margin-top:8px;" class="muted" id="backupInfo"></div>
       <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
     </section>
@@ -309,7 +310,7 @@
     <!-- Import/Export final -->
     <section class="card">
       <div class="actions">
-        <button id="exportBtn" class="secondary" type="button">Export complet (JSON)</button>
+        <button id="exportBtn" class="secondary" type="button">Export complet (JSON + CSV)</button>
         <button id="importBtn" class="secondary" type="button">Import JSON</button>
       </div>
       <input id="importFile" type="file" accept="application/json" style="display:none;" />
@@ -538,7 +539,7 @@ function renderFilterSelects() {
 /* Verrouiller / déverrouiller la saisie tant qu'aucun enfant n'est choisi */
 function lockEntryForm(lock) {
   const inputs = document.querySelectorAll(
-    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveBtn"
+    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveDiskBtn"
   );
   inputs.forEach(el => el.disabled = lock);
 
@@ -646,8 +647,43 @@ async function saveOrUpdate() {
   const amt = parseFloat($("amtInput").value);
   const desc = $("descInput").value.trim();
 
+  const isEcole = (cat || "").toLowerCase().trim() === "école";
+  let note = null;
+  let moyenne = null;
+  if (isEcole) {
+    note = parseFloat($("noteInput").value);
+    moyenne = parseFloat($("moyenneInput").value);
+    if (!Number.isFinite(note) || !Number.isFinite(moyenne)) {
+      return setStatus("Pour École, la note et la moyenne sont obligatoires.");
+    }
+  }
+
   if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
     return setStatus("Tous les champs sont obligatoires.");
+  }
+
+  // Doublon potentiel pour École: même note+moyenne, même enfant, date dans un intervalle d'1 mois
+  if (isEcole) {
+    const baseDate = new Date(dateVal + "T00:00:00");
+    const allTx = await dbGetAll(STORE_TX);
+    const ONE_MONTH_MS = 31 * 24 * 60 * 60 * 1000;
+    const dup = allTx
+      .filter(r => r && r.child === ACTIVE_CHILD)
+      .filter(r => ((r.category || "").toLowerCase().trim() === "école"))
+      .filter(r => !(EDIT_MODE && EDIT_ID !== null && r.id === EDIT_ID))
+      .find(r =>
+        Number.isFinite(r.note) && Number.isFinite(r.moyenne) &&
+        Math.abs(r.note - note) < 1e-9 && Math.abs(r.moyenne - moyenne) < 1e-9 &&
+        Math.abs(new Date(r.date + "T00:00:00") - baseDate) <= ONE_MONTH_MS
+      );
+    if (dup) {
+      const msg = `Doublon potentiel "Pour ${ACTIVE_CHILD}, il y a déjà une note et une moyenne identique saisie à ${dup.date}". Voulez-vous tout de même continuer ?`;
+      const ok = window.confirm(msg);
+      if (!ok) {
+        setStatus("Enregistrement annulé.");
+        return;
+      }
+    }
   }
 
   const record = {
@@ -656,6 +692,8 @@ async function saveOrUpdate() {
     category: cat,
     amount: amt,
     desc: desc.slice(0,100),
+    note: isEcole ? note : null,
+    moyenne: isEcole ? moyenne : null,
     createdAt: Date.now(),
     updatedAt: null
   };
@@ -724,6 +762,8 @@ async function editRecord(id) {
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
   $("descInput").value = rec.desc;
+  $("noteInput").value = (rec.note ?? "");
+  $("moyenneInput").value = (rec.moyenne ?? "");
 
   toggleSchoolFields();
   updateDescCounter();
@@ -1152,17 +1192,14 @@ async function init() {
 
   await initUIAfterConfig();
 
-  $("saveBtn").addEventListener("click", saveOrUpdate);
-  $("resetBtn").addEventListener("click", () => { setEditMode(false); resetEntryForm(); });
-  $("cancelEditBtn").addEventListener("click", cancelEdit);
+  $("saveDiskBtn").addEventListener("click", saveOrUpdate);
+$("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
 
   $("catSelect").addEventListener("change", toggleSchoolFields);
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
-
-  $("backupNowBtn").addEventListener("click", backupNow);
-  $("backupNowBtn2").addEventListener("click", backupNow);
+$("backupNowBtn2").addEventListener("click", backupNow);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
 
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
@@ -1188,9 +1225,8 @@ async function init() {
 
     renderTable();
   });
-
-  $("exportBtn").addEventListener("click", exportJSON);
-  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("exportBtn").addEventListener("click", backupNow);
+$("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -1226,4 +1262,3 @@ init();
 </script>
 </body>
 </html>
-
