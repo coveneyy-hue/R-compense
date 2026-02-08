@@ -889,6 +889,12 @@ async function editRecord(id) {
   EDIT_ID = id;
   setEditMode(true);
 
+  // ⚠️ IMPORTANT: Sélectionner l'enfant AVANT de remplir les champs
+  // car setActiveChild() appelle resetEntryForm() qui efface tout
+  const kidToSelect = FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0];
+  setActiveChild(kidToSelect);
+
+  // Maintenant on remplit les champs APRÈS que resetEntryForm() a été appelé
   $("dateInput").value = rec.date;
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
@@ -899,9 +905,6 @@ async function editRecord(id) {
   toggleSchoolFields();
   updateDescCounter();
   setStatus("Mode modification activé.");
-
-  const kidToSelect = FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0];
-  setActiveChild(kidToSelect);
 }
 
 /* =========================
@@ -1396,4 +1399,3 @@ init();
 </script>
 </body>
 </html>
-
