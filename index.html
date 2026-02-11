@@ -53,16 +53,31 @@
     .toolbar > div { flex: 1; min-width: 160px; }
     textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
 
-    details summary { cursor: pointer; font-weight: 1000; }
-    details summary::-webkit-details-marker { display:none; }
-    details summary::before {
-      content: "▸";
-      display:inline-block;
-      margin-right: 8px;
-      color:#111827;
-      transform: translateY(-1px);
-    }
-    details[open] summary::before { content: "▾"; }
+details summary {
+  cursor: pointer;
+  font-weight: 1000;
+  list-style: none;        /* supprime le petit triangle natif */
+}
+
+details summary::-webkit-details-marker {
+  display: none;           /* Chrome / Safari */
+}
+
+details summary::marker {
+  display: none;           /* Firefox moderne */
+}
+
+details summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 8px;
+  color: #111827;
+  transform: translateY(-1px);
+}
+
+details[open] summary::before {
+  content: "▾";
+}
 
     /* Barre enfant (EN HAUT) */
     .kidBar{
@@ -1399,3 +1414,4 @@ init();
 </script>
 </body>
 </html>
+
