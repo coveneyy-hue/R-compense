@@ -101,11 +101,11 @@
 
       <div class="row" style="margin-top:10px;">
         <div>
-          <label>Date</label>
+          <label>Date <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="dateInput" type="date" />
         </div>
         <div>
-          <label>Catégorie</label>
+          <label>Catégorie <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <select id="catSelect"></select>
         </div>
       </div>
@@ -118,11 +118,11 @@
         </div>
         <div class="row" style="margin-top:10px;">
           <div>
-            <label>Note</label>
+            <label>Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
             <input id="noteInput" type="number" step="1" min="0" max="100" placeholder="0" />
           </div>
           <div>
-            <label>Moyenne</label>
+            <label>Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
             <input id="moyenneInput" type="number" step="1" min="0" max="100" placeholder="0" />
           </div>
         </div>
@@ -130,11 +130,11 @@
 
       <div class="row" style="margin-top:10px;">
         <div>
-          <label>Montant</label>
+          <label>Montant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="amtInput" type="number" step="1" inputmode="numeric" placeholder="0" />
         </div>
         <div>
-          <label>Description</label>
+          <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="descInput" type="text" maxlength="100" />
           <div class="hint"><span id="descCount">0</span>/100</div>
         </div>
@@ -430,7 +430,20 @@ function renderFilterSelects() {
 }
 function renderMatiereSelect(selectedValue) {
   const matieres = CFG.matieres || DEFAULT_MATIERES;
-  renderSelectOptions($("matiereSelect"), matieres, selectedValue || matieres[0]);
+  const sel = $("matiereSelect");
+  sel.innerHTML = "";
+  // Option vide par défaut
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "— Sélectionner —";
+  sel.appendChild(blank);
+  for (const opt of matieres) {
+    const o = document.createElement("option");
+    o.value = opt;
+    o.textContent = opt;
+    if (selectedValue && opt === selectedValue) o.selected = true;
+    sel.appendChild(o);
+  }
 }
 function lockEntryForm(lock) {
   document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #matiereSelect, #saveDiskBtn")
