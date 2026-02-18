@@ -10,14 +10,10 @@
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
     header { padding: 14px 16px; background: #111827; color: #fff; }
     header h1 { margin: 0; font-size: 18px; }
-
-    /* plus besoin de gros padding bas (barre enfant n'est plus fixed en bas) */
     main { padding: 14px 16px 40px; max-width: 980px; margin: 0 auto; }
-
     .card { background:#fff; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.06); margin-bottom: 12px; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     label { display:block; font-size: 12px; color:#374151; margin-bottom: 6px; }
-
     select, input, button, textarea {
       width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid #e5e7eb; font-size: 16px; background:#fff;
       box-sizing: border-box;
@@ -28,193 +24,62 @@
     button.danger { background:#b91c1c; }
     .actions { display:flex; gap: 10px; flex-wrap: wrap; }
     .actions > * { flex: 1; min-width: 140px; }
-
     .muted { color:#6b7280; font-size: 13px; }
     .hint { font-size:12px; color:#6b7280; margin-top:6px; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-
     .totals { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .totalBox { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
     .totalBox .name { font-weight: 900; }
     .totalBox .amt { font-size: 20px; font-weight: 1000; margin-top: 4px; }
     .amt.pos { color:#065f46; }
     .amt.neg { color:#b91c1c; }
-
     table { width:100%; border-collapse: collapse; }
     th, td { border-bottom: 1px solid #f0f1f4; padding: 10px 6px; font-size: 14px; vertical-align: top; }
     th { text-align:left; color:#374151; font-size: 12px; }
     td.right, th.right { text-align:right; }
-
     .pill { display:inline-block; padding: 3px 8px; border-radius: 999px; background:#f3f4f6; font-size: 12px; color:#111827; }
     .smallBtn { padding:8px 10px; border-radius:10px; font-size: 13px; width:auto; }
     .badgeEdit { display:inline-block; margin-left: 8px; font-size: 12px; padding: 2px 8px; border-radius: 999px; background:#111827; color:#fff; }
-
     .toolbar { display:flex; gap: 10px; align-items: end; flex-wrap: wrap; }
     .toolbar > div { flex: 1; min-width: 160px; }
     textarea { min-height: 92px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
-
-details summary {
-  cursor: pointer;
-  font-weight: 1000;
-  list-style: none;        /* supprime le petit triangle natif */
-}
-
-details summary::-webkit-details-marker {
-  display: none;           /* Chrome / Safari */
-}
-
-details summary::marker {
-  display: none;           /* Firefox moderne */
-}
-
-details summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: 8px;
-  color: #111827;
-  transform: translateY(-1px);
-}
-
-details[open] summary::before {
-  content: "▾";
-}
-
-    /* Barre enfant (EN HAUT) */
-    .kidBar{
-      position: sticky;
-      top: 0;
-      left: 0; right: 0;
-      padding: 10px 12px;
-      background: rgba(246,247,251,.96);
-      border-bottom: 1px solid #e5e7eb;
-      backdrop-filter: blur(6px);
-      display: flex;
-      gap: 10px;
-      z-index: 9999;
-    }
-    .kidBtn{
-      flex: 1;
-      border-radius: 14px;
-      border: 1px solid #d1d5db;
-      background: #ffffff;
-      color: #111827;
-      font-weight: 1000;
-      padding: 12px 12px;
-    }
-    .kidBtn.active{
-      border-color: #111827;
-    }
-    /* 🎨 Couleurs enfants – très pâles + transition */
-    :root{
-      --lily-bg: #fde8f2;    /* rose très pâle */
-      --lily-border: #f5b6d2;
-
-      --victor-bg: #e9f2ff;  /* bleu très pâle */
-      --victor-border: #b7d4ff;
-    }
-
-    /* Boutons enfants (teinte même non-actif) */
-    .kidBtn.lily{
-      background: var(--lily-bg);
-      border-color: var(--lily-border);
-    }
-    .kidBtn.victor{
-      background: var(--victor-bg);
-      border-color: var(--victor-border);
-    }
-
-    /* Bouton actif (teinte un peu plus soutenue) */
-    .kidBtn.active.lily{
-      background: #f9cfe3;
-      color:#111827;
-    }
-    .kidBtn.active.victor{
-      background: #cfe2ff;
-      color:#111827;
-    }
-
-    /* Carte Saisie teintée selon enfant */
-    #entryCard{
-      transition: background-color .12s ease;
-    }
-    #entryCard.saisie-lily{
-      background: var(--lily-bg);
-    }
-    #entryCard.saisie-victor{
-      background: var(--victor-bg);
-    }
-
-    /* Inputs légèrement teintés aussi (avec transition douce) */
-    #entryCard input,
-    #entryCard select,
-    #entryCard textarea{
-      transition: background-color .12s ease;
-    }
-    #entryCard.saisie-lily input,
-    #entryCard.saisie-lily select,
-    #entryCard.saisie-lily textarea{
-      background: #fff7fb;
-    }
-    #entryCard.saisie-victor input,
-    #entryCard.saisie-victor select,
-    #entryCard.saisie-victor textarea{
-      background: #f6f9ff;
-    }
-
-
-    /* Style pour les champs école */
-    .school-fields {
-      display: none;
-      margin-top: 10px;
-    }
-    .school-fields.visible {
-      display: block;
-    }
-  
-    .iconBtn{ display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
-    .iconBtn:hover{ background: rgba(255,255,255,0.18); }
-    .iconBtn:active{ transform: translateY(1px); }
-
-    .saveWrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
-    .saveMsg{
-      font-size:12px;
-      color:#e5e7eb;
-      opacity:0;
-      transform: translateY(-2px);
-      transition: opacity .18s ease, transform .18s ease;
-      min-height: 14px;
-      text-align:center;
-      max-width: 140px;
-      line-height: 1.1;
-    }
-.saveMsg.show{
-  opacity:1;
-  transform: translateY(0);
-}
-
-/* ✅ OK – vert foncé */
-.saveMsg.ok{
-  color:#065f46;   /* vert foncé lisible */
-}
-
-/* ⚠️ Warning – jaune/brun foncé */
-.saveMsg.warn{
-  color:#92400e;   /* jaune/brun foncé */
-}
-
-
-
-    /* Historique: filtres masqués par défaut (clic sur l’icône filtre) */
-    .filtersWrap{ display:none; margin-top:10px; }
-    .filtersWrap.show{ display:block; }
-    .iconOnly{ width:42px; padding:8px 0; }
-
+    details summary { cursor: pointer; font-weight: 1000; list-style: none; }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::marker { display: none; }
+    details summary::before { content: "▸"; display: inline-block; margin-right: 8px; color: #111827; transform: translateY(-1px); }
+    details[open] summary::before { content: "▾"; }
+    .kidBar { position: sticky; top: 0; left: 0; right: 0; padding: 10px 12px; background: rgba(246,247,251,.96); border-bottom: 1px solid #e5e7eb; backdrop-filter: blur(6px); display: flex; gap: 10px; z-index: 9999; }
+    .kidBtn { flex: 1; border-radius: 14px; border: 1px solid #d1d5db; background: #ffffff; color: #111827; font-weight: 1000; padding: 12px 12px; }
+    .kidBtn.active { border-color: #111827; }
+    :root { --lily-bg: #fde8f2; --lily-border: #f5b6d2; --victor-bg: #e9f2ff; --victor-border: #b7d4ff; }
+    .kidBtn.lily { background: var(--lily-bg); border-color: var(--lily-border); }
+    .kidBtn.victor { background: var(--victor-bg); border-color: var(--victor-border); }
+    .kidBtn.active.lily { background: #f9cfe3; color:#111827; }
+    .kidBtn.active.victor { background: #cfe2ff; color:#111827; }
+    #entryCard { transition: background-color .12s ease; }
+    #entryCard.saisie-lily { background: var(--lily-bg); }
+    #entryCard.saisie-victor { background: var(--victor-bg); }
+    #entryCard input, #entryCard select, #entryCard textarea { transition: background-color .12s ease; }
+    #entryCard.saisie-lily input, #entryCard.saisie-lily select, #entryCard.saisie-lily textarea { background: #fff7fb; }
+    #entryCard.saisie-victor input, #entryCard.saisie-victor select, #entryCard.saisie-victor textarea { background: #f6f9ff; }
+    .school-fields { display: none; margin-top: 10px; }
+    .school-fields.visible { display: block; }
+    .iconBtn { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
+    .iconBtn:hover { background: rgba(255,255,255,0.18); }
+    .iconBtn:active { transform: translateY(1px); }
+    .saveWrap { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+    .saveMsg { font-size:12px; color:#e5e7eb; opacity:0; transform: translateY(-2px); transition: opacity .18s ease, transform .18s ease; min-height: 14px; text-align:center; max-width: 140px; line-height: 1.1; }
+    .saveMsg.show { opacity:1; transform: translateY(0); }
+    .saveMsg.ok { color:#065f46; }
+    .saveMsg.warn { color:#92400e; }
+    .filtersWrap { display:none; margin-top:10px; }
+    .filtersWrap.show { display:block; }
+    .iconOnly { width:42px; padding:8px 0; }
   </style>
 </head>
 <body>
   <header><h1>R-compense</h1></header>
 
-  <!-- Barre enfant en HAUT (aucun sélectionné par défaut) -->
   <div class="kidBar">
     <button id="kidLily" class="kidBtn lily" type="button">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn victor" type="button">Victor</button>
@@ -225,7 +90,6 @@ details[open] summary::before {
   </div>
 
   <main>
-    <!-- Saisie -->
     <section class="card" id="entryCard">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
         <div style="font-weight:1000;">
@@ -248,7 +112,11 @@ details[open] summary::before {
 
       <!-- Champs spécifiques pour la catégorie "école" -->
       <div id="schoolFields" class="school-fields">
-        <div class="row">
+        <div style="margin-top:10px;">
+          <label>Matière <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
+          <select id="matiereSelect"></select>
+        </div>
+        <div class="row" style="margin-top:10px;">
           <div>
             <label>Note</label>
             <input id="noteInput" type="number" step="1" min="0" max="100" placeholder="0" />
@@ -279,7 +147,6 @@ details[open] summary::before {
       <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
     </section>
 
-<!-- Historique transactions (OUVERT par défaut, filtres masqués par défaut) -->
     <section class="card">
       <details id="txDetails" open>
         <summary>Historique (transactions)</summary>
@@ -291,42 +158,35 @@ details[open] summary::before {
           <button id="toggleFiltersBtn" class="secondary smallBtn iconOnly" type="button" title="Afficher/masquer les filtres" aria-label="Filtres"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
         </div>
 
-        
         <div id="filtersWrap" class="filtersWrap">
-<div class="toolbar" style="margin-top:10px;">
-          <div>
-            <label>Filtrer (enfant) — multi</label>
-            <select id="filterChild" multiple size="3"></select>
-            <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
+          <div class="toolbar" style="margin-top:10px;">
+            <div>
+              <label>Filtrer (enfant) — multi</label>
+              <select id="filterChild" multiple size="3"></select>
+              <div class="hint">Android: touche pour sélectionner, retouche pour désélectionner.</div>
+            </div>
+            <div>
+              <label>Filtrer (catégorie) — multi</label>
+              <select id="filterCat" multiple size="5"></select>
+            </div>
+            <div>
+              <label>Description contient</label>
+              <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
+            </div>
+            <div>
+              <label>Date début</label>
+              <input id="fromDate" type="date" />
+            </div>
+            <div>
+              <label>Date fin</label>
+              <input id="toDate" type="date" />
+            </div>
           </div>
-
-          <div>
-            <label>Filtrer (catégorie) — multi</label>
-            <select id="filterCat" multiple size="5"></select>
-          </div>
-
-          <div>
-            <label>Description contient</label>
-            <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
-          </div>
-
-          <div>
-            <label>Date début</label>
-            <input id="fromDate" type="date" />
-          </div>
-
-          <div>
-            <label>Date fin</label>
-            <input id="toDate" type="date" />
+          <div class="actions" style="margin-top:10px;">
+            <button id="applyFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Appliquer filtres" aria-label="Appliquer filtres">✓</button>
+            <button id="clearFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Effacer filtres" aria-label="Effacer filtres">🧹</button>
           </div>
         </div>
-
-        <div class="actions" style="margin-top:10px;">
-          <button id="applyFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Appliquer filtres" aria-label="Appliquer filtres">✓</button>
-          <button id="clearFilterBtn" class="secondary smallBtn iconOnly" type="button" title="Effacer filtres" aria-label="Effacer filtres">🧹</button>
-        </div>
-        </div>
-
 
         <div style="overflow-x:auto; margin-top:10px;">
           <table>
@@ -335,6 +195,7 @@ details[open] summary::before {
                 <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
                 <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
                 <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
+                <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
                 <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th>Description</th>
                 <th style="width:160px;">Actions</th>
@@ -344,11 +205,11 @@ details[open] summary::before {
           </table>
         </div>
       </details>
-    </section><!-- Journal des actions (AU-DESSOUS de l'historique) -->
+    </section>
+
     <section class="card">
       <details>
         <summary>Journal des actions</summary>
-
         <div style="margin-top:10px; overflow-x:auto;">
           <table>
             <thead>
@@ -362,7 +223,6 @@ details[open] summary::before {
             <tbody id="logBody"></tbody>
           </table>
         </div>
-
         <div class="actions" style="margin-top:10px;">
           <button id="clearLogBtn" class="danger" type="button">Vider journal</button>
           <button id="exportLogBtn" class="secondary" type="button">Export journal (JSON)</button>
@@ -370,21 +230,29 @@ details[open] summary::before {
       </details>
     </section>
 
-    
-
-    <!-- Paramètres (SOUS le journal des actions) -->
     <section class="card">
       <details>
-        <summary>Paramètres (catégories, backup)</summary>
+        <summary>Paramètres (catégories, matières, backup)</summary>
 
         <div style="margin-top:10px;">
           <label>Catégories (une par ligne)</label>
           <textarea id="catsCfg"></textarea>
         </div>
-
         <div class="actions" style="margin-top:10px;">
           <button id="saveCfgBtn" class="secondary" type="button">Enregistrer catégories</button>
           <button id="resetCfgBtn" class="secondary" type="button">Remettre par défaut</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0;" />
+
+        <div>
+          <label>Matières — École (une par ligne)</label>
+          <textarea id="matieresCfg"></textarea>
+          <div class="hint">Ces matières apparaissent dans le champ "Matière" lors de la saisie d'une transaction École.</div>
+        </div>
+        <div class="actions" style="margin-top:10px;">
+          <button id="saveMatieresCfgBtn" class="secondary" type="button">Enregistrer matières</button>
+          <button id="resetMatieresCfgBtn" class="secondary" type="button">Remettre par défaut</button>
         </div>
 
         <hr style="border:0;border-top:1px solid #e5e7eb;margin:14px 0;" />
@@ -401,7 +269,6 @@ details[open] summary::before {
             <div class="hint">Mis à jour quand tu fais "Backup auto".</div>
           </div>
         </div>
-
         <div class="actions" style="margin-top:10px;">
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
           <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
@@ -409,7 +276,6 @@ details[open] summary::before {
       </details>
     </section>
 
-    <!-- Import/Export final -->
     <section class="card">
       <div class="actions">
         <button id="exportBtn" class="secondary" type="button">Export</button>
@@ -422,6 +288,7 @@ details[open] summary::before {
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
 const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Argent dépensé","Gâterie","Éducation financière"];
+const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
 const DB_NAME = "BudgetEnfantsDB_v2";
 const DB_VERSION = 2;
 const STORE_CONFIG = "config";
@@ -429,22 +296,23 @@ const STORE_TX = "transactions";
 const STORE_LOG = "log";
 
 let db = null;
-/* kid par défaut = null (aucun sélectionné) */
-let CFG = { kids: FIXED_KIDS, cats: DEFAULT_CATS, defaults: { kid: null, cat: "Tâches ménagères" }, backup: { intervalDays: 7, lastBackupTs: null } };
+let CFG = {
+  kids: FIXED_KIDS,
+  cats: DEFAULT_CATS,
+  matieres: DEFAULT_MATIERES,
+  defaults: { kid: null, cat: "Tâches ménagères" },
+  backup: { intervalDays: 7, lastBackupTs: null }
+};
 let ALL_DATA = [];
 let ACTIVE_CHILD = null;
 let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
 let SORT = { col: "date", dir: "desc" };
 let EDIT_MODE = false;
 let EDIT_ID = null;
-
-
 let SAVE_MSG_TIMER = null;
 const $ = (id) => document.getElementById(id);
 
-function nowISO() {
-  return new Date().toISOString();
-}
+function nowISO() { return new Date().toISOString(); }
 function todayISO() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
@@ -454,27 +322,16 @@ function formatDateHuman(isoDate) {
   if (!isoDate) return "";
   const d = new Date(isoDate);
   const pad = (n) => String(n).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const mm = pad(d.getMonth()+1);
-  const dd = pad(d.getDate());
-  return `${yyyy}-${mm}-${dd}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 function formatTS(ts) {
   if (!ts) return "";
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  const mm = pad(d.getMonth()+1);
-  const dd = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const min = pad(d.getMinutes());
-  const ss = pad(d.getSeconds());
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-/* =========================
-   IndexedDB
-========================= */
+/* ========================= IndexedDB ========================= */
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -482,280 +339,145 @@ function openDB() {
     req.onsuccess = () => resolve(req.result);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_CONFIG)) {
-        db.createObjectStore(STORE_CONFIG, { keyPath: "id" });
-      }
+      if (!db.objectStoreNames.contains(STORE_CONFIG)) db.createObjectStore(STORE_CONFIG, { keyPath: "id" });
       if (!db.objectStoreNames.contains(STORE_TX)) {
         const txStore = db.createObjectStore(STORE_TX, { keyPath: "id", autoIncrement: true });
         txStore.createIndex("child", "child", { unique: false });
         txStore.createIndex("date", "date", { unique: false });
         txStore.createIndex("category", "category", { unique: false });
       }
-      if (!db.objectStoreNames.contains(STORE_LOG)) {
-        db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
-      }
+      if (!db.objectStoreNames.contains(STORE_LOG)) db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
     };
   });
 }
-
 async function dbGet(store, key) {
   const tx = db.transaction(store, "readonly");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.get(key);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 }
-
 async function dbPut(store, obj) {
   const tx = db.transaction(store, "readwrite");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.put(obj);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).put(obj); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 }
-
 async function dbAdd(store, obj) {
   const tx = db.transaction(store, "readwrite");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.add(obj);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).add(obj); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 }
-
 async function dbDelete(store, id) {
   const tx = db.transaction(store, "readwrite");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).delete(id); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
 }
-
 async function dbGetAll(store) {
   const tx = db.transaction(store, "readonly");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
 }
-
 async function dbClear(store) {
   const tx = db.transaction(store, "readwrite");
-  const st = tx.objectStore(store);
-  return new Promise((resolve, reject) => {
-    const req = st.clear();
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
+  return new Promise((res, rej) => { const r = tx.objectStore(store).clear(); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
 }
 
-/* =========================
-   Config
-========================= */
+/* ========================= Config ========================= */
 async function loadConfig() {
   const obj = await dbGet(STORE_CONFIG, "main");
   if (obj && obj.data) return obj.data;
-  return {
-    kids: FIXED_KIDS,
-    cats: DEFAULT_CATS,
-    defaults: { kid: null, cat: DEFAULT_CATS[0] },
-    backup: { intervalDays: 7, lastBackupTs: null }
-  };
+  return { kids: FIXED_KIDS, cats: DEFAULT_CATS, matieres: DEFAULT_MATIERES, defaults: { kid: null, cat: DEFAULT_CATS[0] }, backup: { intervalDays: 7, lastBackupTs: null } };
 }
+async function saveConfig(cfg) { await dbPut(STORE_CONFIG, { id: "main", data: cfg }); }
 
-async function saveConfig(cfg) {
-  await dbPut(STORE_CONFIG, { id: "main", data: cfg });
-}
-
-/* =========================
-   Logging actions
-========================= */
+/* ========================= Logging ========================= */
 async function logAction(actionName, amount, details) {
-  const entry = {
-    ts: Date.now(),
-    action: actionName,
-    amount: amount,
-    details: details || ""
-  };
-  await dbAdd(STORE_LOG, entry);
+  await dbAdd(STORE_LOG, { ts: Date.now(), action: actionName, amount: amount, details: details || "" });
 }
 
-/* =========================
-   UI Helpers
-========================= */
+/* ========================= UI Helpers ========================= */
 function setStatus(msg) {
   $("statusMsg").textContent = msg;
   setTimeout(() => { $("statusMsg").textContent = ""; }, 4000);
 }
-
-/* Message discret sous la disquette */
 function setSaveMsg(msg, type) {
   const el = $("saveMsg");
   if (!el) return;
-
-  if (SAVE_MSG_TIMER) {
-    clearTimeout(SAVE_MSG_TIMER);
-    SAVE_MSG_TIMER = null;
-  }
-
+  if (SAVE_MSG_TIMER) { clearTimeout(SAVE_MSG_TIMER); SAVE_MSG_TIMER = null; }
   el.textContent = msg || "";
   el.classList.remove("ok","warn","show");
-
   if (!msg) return;
-
   if (type === "ok") el.classList.add("ok");
   if (type === "warn") el.classList.add("warn");
   el.classList.add("show");
-
-  SAVE_MSG_TIMER = setTimeout(() => {
-    el.classList.remove("show");
-    // on laisse le texte (min-height) mais sans "flash"
-    SAVE_MSG_TIMER = null;
-  }, 2500);
+  SAVE_MSG_TIMER = setTimeout(() => { el.classList.remove("show"); SAVE_MSG_TIMER = null; }, 2500);
 }
 function setEditMode(on) {
   EDIT_MODE = on;
   $("editBadge").style.display = on ? "inline-block" : "none";
   $("cancelEditBtn").style.display = on ? "inline-block" : "none";
 }
-
-function updateDescCounter() {
-  const len = $("descInput").value.length;
-  $("descCount").textContent = len;
-}
-
+function updateDescCounter() { $("descCount").textContent = $("descInput").value.length; }
 function renderSelectOptions(selectEl, opts, selected) {
   selectEl.innerHTML = "";
   for (const opt of opts) {
     const o = document.createElement("option");
-    o.value = opt;
-    o.textContent = opt;
+    o.value = opt; o.textContent = opt;
     if (opt === selected) o.selected = true;
     selectEl.appendChild(o);
   }
 }
-
-function getSelectedValues(selectEl) {
-  const arr = [];
-  for (const opt of selectEl.options) {
-    if (opt.selected) arr.push(opt.value);
-  }
-  return arr;
-}
-
-function setSelectedValues(selectEl, vals) {
-  for (const opt of selectEl.options) {
-    opt.selected = vals.includes(opt.value);
-  }
-}
-
+function getSelectedValues(selectEl) { return Array.from(selectEl.options).filter(o => o.selected).map(o => o.value); }
+function setSelectedValues(selectEl, vals) { for (const opt of selectEl.options) opt.selected = vals.includes(opt.value); }
 function renderFilterSelects() {
   renderSelectOptions($("filterChild"), CFG.kids, "");
   renderSelectOptions($("filterCat"), CFG.cats, "");
   setSelectedValues($("filterChild"), []);
   setSelectedValues($("filterCat"), []);
 }
-
-/* Verrouiller / déverrouiller la saisie tant qu'aucun enfant n'est choisi */
+function renderMatiereSelect(selectedValue) {
+  const matieres = CFG.matieres || DEFAULT_MATIERES;
+  renderSelectOptions($("matiereSelect"), matieres, selectedValue || matieres[0]);
+}
 function lockEntryForm(lock) {
-  const inputs = document.querySelectorAll(
-    "#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #saveDiskBtn"
-  );
-  inputs.forEach(el => el.disabled = lock);
-
-  if (lock) {
-    setStatus("Sélectionne Lily ou Victor pour commencer 👆");
-  }
+  document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #matiereSelect, #saveDiskBtn")
+    .forEach(el => el.disabled = lock);
+  if (lock) setStatus("Sélectionne Lily ou Victor pour commencer 👆");
 }
 
-/* =========================
-   Afficher/masquer les champs école
-========================= */
+/* ========================= School fields ========================= */
 function toggleSchoolFields() {
-  const selectedCat = $("catSelect").value;
-  const schoolFields = $("schoolFields");
-
-  if ((selectedCat || "").toLowerCase().trim() === "école") {
-    schoolFields.classList.add("visible");
+  const isEcole = ($("catSelect").value || "").toLowerCase().trim() === "école";
+  if (isEcole) {
+    $("schoolFields").classList.add("visible");
   } else {
-    schoolFields.classList.remove("visible");
+    $("schoolFields").classList.remove("visible");
     $("noteInput").value = "";
     $("moyenneInput").value = "";
+    if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
   }
 }
 
-/* =========================
-   Calculer le montant automatiquement pour école
-========================= */
+/* ========================= Auto-calculate amount for École ========================= */
 function calculateSchoolAmount() {
-  const selectedCat = $("catSelect").value;
-
-  if ((selectedCat || "").toLowerCase().trim() !== "école") {
-    return;
-  }
-
+  if (($("catSelect").value || "").toLowerCase().trim() !== "école") return;
   const note = parseFloat($("noteInput").value) || 0;
   const moyenne = parseFloat($("moyenneInput").value) || 0;
-
-  if (note === 100) {
-    $("amtInput").value = "20";
-    return;
-  }
-
+  if (note === 100) { $("amtInput").value = "20"; return; }
   if (note >= 80) {
-    const difference = note - moyenne;
-    if (difference > 0) {
-      const montant = Math.min(difference * 1, 15);
-      $("amtInput").value = String(Math.round(montant));
-    } else {
-      $("amtInput").value = "0";
-    }
+    const diff = note - moyenne;
+    $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff, 15))) : "0";
   } else {
     $("amtInput").value = "0";
   }
 }
 
-/* =========================
-   Active child
-========================= */
+/* ========================= Active child ========================= */
 function setActiveChild(childName) {
   ACTIVE_CHILD = childName;
-
   const entryCard = $("entryCard");
-
   $("kidLily").classList.remove("active");
   $("kidVictor").classList.remove("active");
-
-  // reset thème saisie
   if (entryCard) entryCard.classList.remove("saisie-lily", "saisie-victor");
-
-  if (!childName) {
-    lockEntryForm(true);
-    return;
-  }
-
+  if (!childName) { lockEntryForm(true); return; }
   lockEntryForm(false);
-
-  if (childName === "Lily-Rose") {
-    $("kidLily").classList.add("active");
-    if (entryCard) entryCard.classList.add("saisie-lily");
-  } else {
-    $("kidVictor").classList.add("active");
-    if (entryCard) entryCard.classList.add("saisie-victor");
-  }
-
-  CFG.defaults.kid = childName; // on mémorise le dernier choisi (mais on ne sélectionne PAS au démarrage)
+  if (childName === "Lily-Rose") { $("kidLily").classList.add("active"); if (entryCard) entryCard.classList.add("saisie-lily"); }
+  else { $("kidVictor").classList.add("active"); if (entryCard) entryCard.classList.add("saisie-victor"); }
+  CFG.defaults.kid = childName;
   saveConfig(CFG);
-
   resetEntryForm();
 }
 
@@ -766,66 +488,73 @@ function resetEntryForm() {
   $("descInput").value = "";
   $("noteInput").value = "";
   $("moyenneInput").value = "";
+  if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
   updateDescCounter();
   toggleSchoolFields();
 }
 
-/* =========================
-   Save / Update
-========================= */
+/* ========================= Save / Update ========================= */
 async function saveOrUpdate() {
   if (!ACTIVE_CHILD) {
-    setSaveMsg("Sélectionne Lily-Rose ou Victor avant d’enregistrer.", "warn");
-    return setStatus("Tu dois sélectionner un enfant avant d’enregistrer.");
+    setSaveMsg("Sélectionne Lily-Rose ou Victor avant d'enregistrer.", "warn");
+    return setStatus("Tu dois sélectionner un enfant avant d'enregistrer.");
   }
 
   const dateVal = $("dateInput").value;
   const cat = $("catSelect").value;
   const amt = parseInt($("amtInput").value, 10);
   const desc = $("descInput").value.trim();
-
   const isEcole = (cat || "").toLowerCase().trim() === "école";
-  let note = null;
-  let moyenne = null;
+
+  let note = null, moyenne = null, matiere = null;
   if (isEcole) {
     note = parseFloat($("noteInput").value);
     moyenne = parseFloat($("moyenneInput").value);
+    matiere = $("matiereSelect").value;
     if (!Number.isFinite(note) || !Number.isFinite(moyenne)) {
-      setSaveMsg("Veuillez completer les infos manquantes avant d\'enregistrer", "warn");
+      setSaveMsg("Veuillez compléter les infos manquantes avant d'enregistrer", "warn");
       return setStatus("Pour École, la note et la moyenne sont obligatoires.");
+    }
+    if (!matiere) {
+      setSaveMsg("Veuillez sélectionner une matière avant d'enregistrer", "warn");
+      return setStatus("Pour École, la matière est obligatoire.");
     }
   }
 
   if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
-    setSaveMsg("Veuillez completer les infos manquantes avant d\'enregistrer", "warn");
+    setSaveMsg("Veuillez compléter les infos manquantes avant d'enregistrer", "warn");
     return setStatus("Tous les champs sont obligatoires.");
   }
 
-  // Doublon potentiel pour École: même note+moyenne, même enfant, date dans un intervalle d'1 mois
+  // Détection de doublons pour École: même matière + note + moyenne + enfant, date dans 1 mois
   if (isEcole) {
     const baseDate = new Date(dateVal + "T00:00:00");
-    const allTx = await dbGetAll(STORE_TX);
     const ONE_MONTH_MS = 31 * 24 * 60 * 60 * 1000;
+    const allTx = await dbGetAll(STORE_TX);
     const dup = allTx
       .filter(r => r && r.child === ACTIVE_CHILD)
-      .filter(r => ((r.category || "").toLowerCase().trim() === "école"))
+      .filter(r => (r.category || "").toLowerCase().trim() === "école")
       .filter(r => !(EDIT_MODE && EDIT_ID !== null && r.id === EDIT_ID))
       .find(r =>
         Number.isFinite(r.note) && Number.isFinite(r.moyenne) &&
-        Math.abs(r.note - note) < 1e-9 && Math.abs(r.moyenne - moyenne) < 1e-9 &&
+        Math.abs(r.note - note) < 1e-9 &&
+        Math.abs(r.moyenne - moyenne) < 1e-9 &&
+        (r.matiere || "") === matiere &&
         Math.abs(new Date(r.date + "T00:00:00") - baseDate) <= ONE_MONTH_MS
       );
     if (dup) {
-      const msg = `Doublon potentiel "Pour ${ACTIVE_CHILD}, il y a déjà une note et une moyenne identique saisie à ${dup.date}"
-Description existante: "${(dup.desc || "").slice(0,100)}"
-Nouvelle description: "${desc.slice(0,100)}"
-
-Voulez-vous tout de même continuer ?`;
-      const ok = window.confirm(msg);
-      if (!ok) {
+      const msg =
+        `Doublon potentiel détecté !\n\n` +
+        `Pour ${ACTIVE_CHILD}, une entrée École identique existe déjà :\n` +
+        `• Matière : ${dup.matiere || "(non définie)"}\n` +
+        `• Note : ${dup.note}  —  Moyenne : ${dup.moyenne}\n` +
+        `• Date existante : ${dup.date}\n` +
+        `• Description existante : "${(dup.desc || "").slice(0, 100)}"\n\n` +
+        `Nouvelle description : "${desc.slice(0, 100)}"\n\n` +
+        `Voulez-vous tout de même continuer ?`;
+      if (!window.confirm(msg)) {
         setSaveMsg("", "");
-        setStatus("Enregistrement annulé.");
-        return;
+        return setStatus("Enregistrement annulé.");
       }
     }
   }
@@ -835,9 +564,10 @@ Voulez-vous tout de même continuer ?`;
     date: dateVal,
     category: cat,
     amount: amt,
-    desc: desc.slice(0,100),
+    desc: desc.slice(0, 100),
     note: isEcole ? note : null,
     moyenne: isEcole ? moyenne : null,
+    matiere: isEcole ? matiere : null,
     createdAt: Date.now(),
     updatedAt: null
   };
@@ -848,16 +578,16 @@ Voulez-vous tout de même continuer ?`;
     if (existing) record.createdAt = existing.createdAt;
     record.updatedAt = Date.now();
     await dbPut(STORE_TX, record);
-    await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
-    setSaveMsg("Enregistement ok", "ok");
-    setStatus("Enregistement ok");
+    await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat}${matiere ? " | " + matiere : ""} | ${desc}`);
+    setSaveMsg("Enregistrement ok", "ok");
+    setStatus("Enregistrement ok");
     setEditMode(false);
     EDIT_ID = null;
   } else {
     await dbAdd(STORE_TX, record);
-    await logAction("ADD", amt, `Ajout: ${ACTIVE_CHILD} | ${cat} | ${desc}`);
-    setSaveMsg("Enregistement ok", "ok");
-    setStatus("Enregistement ok");
+    await logAction("ADD", amt, `Ajout: ${ACTIVE_CHILD} | ${cat}${matiere ? " | " + matiere : ""} | ${desc}`);
+    setSaveMsg("Enregistrement ok", "ok");
+    setStatus("Enregistrement ok");
   }
 
   await refreshData();
@@ -871,9 +601,7 @@ function cancelEdit() {
   setStatus("Modification annulée.");
 }
 
-/* =========================
-   Load / Delete / Edit
-========================= */
+/* ========================= Load / Delete / Edit ========================= */
 async function refreshData() {
   ALL_DATA = (await dbGetAll(STORE_TX)).map(r => ({...r, amount: Math.round(Number(r.amount || 0))}));
   renderTable();
@@ -881,223 +609,143 @@ async function refreshData() {
   await renderLog();
   await updateDbInfo();
 }
-
 async function updateDbInfo() {
-  const txCount = ALL_DATA.length;
   const logCount = (await dbGetAll(STORE_LOG)).length;
-  $("dbInfo").textContent = `${txCount} transactions • ${logCount} log`;
+  $("dbInfo").textContent = `${ALL_DATA.length} transactions • ${logCount} log`;
 }
-
 async function deleteRecord(id) {
   if (!confirm("Supprimer cette transaction ?")) return;
   const rec = await dbGet(STORE_TX, id);
   if (!rec) return;
   await dbDelete(STORE_TX, id);
-  await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category} | ${rec.desc}`);
+  await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category}${rec.matiere ? " | " + rec.matiere : ""} | ${rec.desc}`);
   await refreshData();
   setStatus("Transaction supprimée ✅");
 }
-
 async function editRecord(id) {
   const rec = await dbGet(STORE_TX, id);
   if (!rec) return;
   EDIT_ID = id;
   setEditMode(true);
-
-  // ⚠️ IMPORTANT: Sélectionner l'enfant AVANT de remplir les champs
-  // car setActiveChild() appelle resetEntryForm() qui efface tout
-  const kidToSelect = FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0];
-  setActiveChild(kidToSelect);
-
-  // Maintenant on remplit les champs APRÈS que resetEntryForm() a été appelé
+  // Sélectionner l'enfant AVANT de remplir les champs (setActiveChild appelle resetEntryForm)
+  setActiveChild(FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0]);
+  // Remplir les champs APRÈS resetEntryForm
   $("dateInput").value = rec.date;
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
   $("descInput").value = rec.desc;
   $("noteInput").value = (rec.note ?? "");
   $("moyenneInput").value = (rec.moyenne ?? "");
-
   toggleSchoolFields();
+  // Matière: tenter de sélectionner, sinon ajouter temporairement
+  if (rec.matiere) {
+    $("matiereSelect").value = rec.matiere;
+    if ($("matiereSelect").value !== rec.matiere) {
+      const opt = document.createElement("option");
+      opt.value = rec.matiere;
+      opt.textContent = rec.matiere + " (valeur existante)";
+      $("matiereSelect").appendChild(opt);
+      $("matiereSelect").value = rec.matiere;
+    }
+  }
   updateDescCounter();
   setStatus("Mode modification activé.");
 }
 
-/* =========================
-   Render
-========================= */
+/* ========================= Render ========================= */
 function applyFilters(data) {
   let arr = data.slice();
-  if (FILTER.children.length > 0) {
-    arr = arr.filter(r => FILTER.children.includes(r.child));
-  }
-  if (FILTER.cats.length > 0) {
-    arr = arr.filter(r => FILTER.cats.includes(r.category));
-  }
-  if (FILTER.desc) {
-    const search = FILTER.desc.toLowerCase();
-    arr = arr.filter(r => r.desc.toLowerCase().includes(search));
-  }
-  if (FILTER.from) {
-    arr = arr.filter(r => r.date >= FILTER.from);
-  }
-  if (FILTER.to) {
-    arr = arr.filter(r => r.date <= FILTER.to);
-  }
+  if (FILTER.children.length > 0) arr = arr.filter(r => FILTER.children.includes(r.child));
+  if (FILTER.cats.length > 0) arr = arr.filter(r => FILTER.cats.includes(r.category));
+  if (FILTER.desc) { const s = FILTER.desc.toLowerCase(); arr = arr.filter(r => r.desc.toLowerCase().includes(s)); }
+  if (FILTER.from) arr = arr.filter(r => r.date >= FILTER.from);
+  if (FILTER.to) arr = arr.filter(r => r.date <= FILTER.to);
   return arr;
 }
-
 function sortData(data) {
-  const col = SORT.col;
-  const dir = SORT.dir;
+  const col = SORT.col, dir = SORT.dir;
   data.sort((a, b) => {
-    let valA = a[col];
-    let valB = b[col];
-    if (col === "date") {
-      valA = new Date(valA).getTime();
-      valB = new Date(valB).getTime();
-    }
-    if (col === "amount") {
-      valA = parseFloat(valA);
-      valB = parseFloat(valB);
-    }
-    if (valA < valB) return dir === "asc" ? -1 : 1;
-    if (valA > valB) return dir === "asc" ? 1 : -1;
+    let va = a[col] || "", vb = b[col] || "";
+    if (col === "date") { va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
+    if (col === "amount") { va = parseFloat(va); vb = parseFloat(vb); }
+    if (va < vb) return dir === "asc" ? -1 : 1;
+    if (va > vb) return dir === "asc" ? 1 : -1;
     return 0;
   });
 }
-
 function renderTable() {
   const filtered = applyFilters(ALL_DATA);
   sortData(filtered);
-
   const tbody = $("txBody");
   tbody.innerHTML = "";
-
   if (filtered.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="6" style="text-align:center; color:#6b7280;">Aucune transaction</td>`;
-    tbody.appendChild(tr);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">Aucune transaction</td></tr>`;
   } else {
     for (const row of filtered) {
       const tr = document.createElement("tr");
-
-      const tdChild = document.createElement("td");
-      tdChild.innerHTML = `<span class="pill">${row.child}</span>`;
-      tr.appendChild(tdChild);
-
-      const tdDate = document.createElement("td");
-      tdDate.textContent = formatDateHuman(row.date);
-      tr.appendChild(tdDate);
-
-      const tdCat = document.createElement("td");
-      tdCat.textContent = row.category;
-      tr.appendChild(tdCat);
-
-      const tdAmt = document.createElement("td");
-      tdAmt.className = "right";
-      const amtClass = row.amount >= 0 ? "pos" : "neg";
-      tdAmt.innerHTML = `<span class="amt ${amtClass}">${row.amount} $</span>`;
-      tr.appendChild(tdAmt);
-
-      const tdDesc = document.createElement("td");
-      tdDesc.textContent = row.desc;
-      tr.appendChild(tdDesc);
-
-      const tdActions = document.createElement("td");
-      tdActions.innerHTML = `
-        <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
-        <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
-      `;
-      tr.appendChild(tdActions);
-
+      tr.innerHTML = `
+        <td><span class="pill">${row.child}</span></td>
+        <td>${formatDateHuman(row.date)}</td>
+        <td>${row.category}</td>
+        <td style="font-size:13px;">${row.matiere || ""}</td>
+        <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
+        <td>${row.desc}</td>
+        <td>
+          <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
+          <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
+        </td>`;
       tbody.appendChild(tr);
     }
   }
-
   const filteredSum = filtered.reduce((s, r) => s + r.amount, 0);
   $("rowsCount").textContent = `${filtered.length} transaction(s)`;
   $("filteredTotal").textContent = `${filteredSum} $`;
 }
-
 async function renderTotals() {
-  // Met à jour le solde total directement dans les boutons Lily-Rose / Victor
   const totals = {};
   for (const kid of CFG.kids) totals[kid] = 0;
-
   for (const r of ALL_DATA) {
     if (!r || !totals.hasOwnProperty(r.child)) continue;
-    totals[r.child] += (Number.isFinite(r.amount) ? r.amount : 0);
+    totals[r.child] += Number.isFinite(r.amount) ? r.amount : 0;
   }
-
-  const lily = "Lily-Rose";
-  const victor = "Victor";
-  if ($("kidLily")) $("kidLily").textContent = `${lily} (${(totals[lily] ?? 0)}$)`;
-  if ($("kidVictor")) $("kidVictor").textContent = `${victor} (${(totals[victor] ?? 0)}$)`;
+  if ($("kidLily")) $("kidLily").textContent = `Lily-Rose (${totals["Lily-Rose"] ?? 0}$)`;
+  if ($("kidVictor")) $("kidVictor").textContent = `Victor (${totals["Victor"] ?? 0}$)`;
 }
-
 async function renderLog() {
   const logs = await dbGetAll(STORE_LOG);
   const tbody = $("logBody");
   tbody.innerHTML = "";
-
   if (logs.length === 0) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td colspan="4" style="text-align:center;color:#6b7280;">Aucune entrée</td>`;
-    tbody.appendChild(tr);
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#6b7280;">Aucune entrée</td></tr>`;
   } else {
-    const sorted = logs.slice().sort((a,b) => b.ts - a.ts);
-    for (const entry of sorted) {
+    for (const entry of logs.slice().sort((a,b) => b.ts - a.ts)) {
       const tr = document.createElement("tr");
-
-      const tdTs = document.createElement("td");
-      tdTs.textContent = formatTS(entry.ts);
-      tdTs.style.fontSize = "12px";
-      tr.appendChild(tdTs);
-
-      const tdAction = document.createElement("td");
-      tdAction.innerHTML = `<span class="pill">${entry.action}</span>`;
-      tr.appendChild(tdAction);
-
-      const tdAmt = document.createElement("td");
-      tdAmt.className = "right";
-      const cls = entry.amount >= 0 ? "pos" : "neg";
-      tdAmt.innerHTML = `<span class="amt ${cls}">${entry.amount} $</span>`;
-      tr.appendChild(tdAmt);
-
-      const tdDetails = document.createElement("td");
-      tdDetails.textContent = entry.details;
-      tdDetails.style.fontSize = "12px";
-      tr.appendChild(tdDetails);
-
+      tr.innerHTML = `
+        <td style="font-size:12px;">${formatTS(entry.ts)}</td>
+        <td><span class="pill">${entry.action}</span></td>
+        <td class="right"><span class="amt ${entry.amount >= 0 ? "pos" : "neg"}">${entry.amount} $</span></td>
+        <td style="font-size:12px;">${entry.details}</td>`;
       tbody.appendChild(tr);
     }
   }
 }
 
-/* =========================
-   Settings
-========================= */
+/* ========================= Settings ========================= */
 async function loadSettingsUI() {
   $("catsCfg").value = CFG.cats.join("\n");
+  $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n");
   $("backupDays").value = CFG.backup?.intervalDays || 7;
-  $("lastBackupDisplay").value = CFG.backup?.lastBackupTs
-    ? formatTS(CFG.backup.lastBackupTs)
-    : "Jamais";
+  $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
 }
-
 async function saveSettingsFromUI() {
-  const raw = $("catsCfg").value.trim();
-  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  const lines = $("catsCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
   if (lines.length === 0) return setStatus("Au moins une catégorie.");
   CFG.cats = lines;
-  if (!CFG.cats.includes(CFG.defaults.cat)) {
-    CFG.defaults.cat = CFG.cats[0];
-  }
+  if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
   await saveConfig(CFG);
   await initUIAfterConfig();
   setStatus("Catégories enregistrées ✅");
 }
-
 async function resetSettingsToDefault() {
   if (!confirm("Remettre les catégories par défaut ?")) return;
   CFG.cats = DEFAULT_CATS.slice();
@@ -1106,15 +754,27 @@ async function resetSettingsToDefault() {
   await initUIAfterConfig();
   setStatus("Catégories par défaut restaurées ✅");
 }
-
-/* =========================
-   Backup reminder
-========================= */
-async function updateBackupUI() {
-  const last = CFG.backup?.lastBackupTs;
-  $("lastBackupDisplay").value = last ? formatTS(last) : "Jamais";
+async function saveMatieresFromUI() {
+  const lines = $("matieresCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return setStatus("Au moins une matière.");
+  CFG.matieres = lines;
+  await saveConfig(CFG);
+  renderMatiereSelect();
+  setStatus("Matières enregistrées ✅");
+}
+async function resetMatieresToDefault() {
+  if (!confirm("Remettre les matières par défaut ?")) return;
+  CFG.matieres = DEFAULT_MATIERES.slice();
+  await saveConfig(CFG);
+  $("matieresCfg").value = CFG.matieres.join("\n");
+  renderMatiereSelect();
+  setStatus("Matières par défaut restaurées ✅");
 }
 
+/* ========================= Backup ========================= */
+async function updateBackupUI() {
+  $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
+}
 async function saveBackupReminderFromUI() {
   const days = parseInt($("backupDays").value, 10);
   if (!Number.isFinite(days) || days < 1) return setStatus("Intervalle invalide.");
@@ -1122,24 +782,15 @@ async function saveBackupReminderFromUI() {
   await saveConfig(CFG);
   setStatus("Rappel backup enregistré ✅");
 }
-
 function maybeRemindBackup() {
   const last = CFG.backup?.lastBackupTs;
   const interval = CFG.backup?.intervalDays || 7;
-  if (last === null) {
-    $("backupInfo").textContent = "⚠️ Aucun backup fait. Pense à en faire un régulièrement !";
-    return;
-  }
-  const now = Date.now();
-  const elapsed = now - last;
-  const elapsedDays = elapsed / (1000 * 60 * 60 * 24);
-  if (elapsedDays >= interval) {
-    $("backupInfo").textContent = `⚠️ Dernier backup il y a ${Math.floor(elapsedDays)} jours. Temps de refaire un backup !`;
-  } else {
-    $("backupInfo").textContent = `✅ Backup OK (il y a ${Math.floor(elapsedDays)} jours).`;
-  }
+  if (!last) { $("backupInfo").textContent = "⚠️ Aucun backup fait. Pense à en faire un régulièrement !"; return; }
+  const elapsedDays = (Date.now() - last) / (1000 * 60 * 60 * 24);
+  $("backupInfo").textContent = elapsedDays >= interval
+    ? `⚠️ Dernier backup il y a ${Math.floor(elapsedDays)} jours. Temps de refaire un backup !`
+    : `✅ Backup OK (il y a ${Math.floor(elapsedDays)} jours).`;
 }
-
 async function backupNow() {
   await exportJSON();
   await exportCSV();
@@ -1150,77 +801,46 @@ async function backupNow() {
   setStatus("Backup terminé (JSON + CSV) ✅");
 }
 
-/* =========================
-   Export CSV
-========================= */
+/* ========================= Export CSV ========================= */
 async function exportCSV() {
   const rows = await dbGetAll(STORE_TX);
-  let csv = "Enfant,Date,Catégorie,Montant,Description,Créé le,Modifié le\n";
+  let csv = "Enfant,Date,Catégorie,Matière,Montant,Description,Créé le,Modifié le\n";
   for (const r of rows) {
-    const child = r.child || "";
-    const date = r.date || "";
-    const cat = r.category || "";
-    const amt = r.amount || 0;
-    const desc = (r.desc || "").replace(/"/g, '""');
-    const createdAt = formatTS(r.createdAt);
-    const updatedAt = r.updatedAt ? formatTS(r.updatedAt) : "";
-    csv += `"${child}","${date}","${cat}","${amt}","${desc}","${createdAt}","${updatedAt}"\n`;
+    const esc = (s) => (s || "").replace(/"/g, '""');
+    csv += `"${esc(r.child)}","${r.date || ""}","${esc(r.category)}","${esc(r.matiere)}","${r.amount || 0}","${esc(r.desc)}","${formatTS(r.createdAt)}","${r.updatedAt ? formatTS(r.updatedAt) : ""}"\n`;
   }
-
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `budget-enfants-${todayISO()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.href = url; a.download = `budget-enfants-${todayISO()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-
   await logAction("EXPORT_CSV", 0, "Export CSV des transactions");
 }
 
-/* =========================
-   Import / Export JSON
-========================= */
+/* ========================= Import / Export JSON ========================= */
 async function exportJSON() {
-  const payload = {
-    version: 1,
-    exportedAt: nowISO(),
-    cfg: CFG,
-    tx: await dbGetAll(STORE_TX),
-    log: await dbGetAll(STORE_LOG)
-  };
+  const payload = { version: 1, exportedAt: nowISO(), cfg: CFG, tx: await dbGetAll(STORE_TX), log: await dbGetAll(STORE_LOG) };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `budget-enfants-${todayISO()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.href = url; a.download = `budget-enfants-${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-
   await logAction("EXPORT", 0, "Export JSON complet (transactions + journal)");
   await refreshData();
   setStatus("Export prêt ✅");
 }
-
 async function exportLogOnly() {
   const payload = { exportedAt: nowISO(), log: await dbGetAll(STORE_LOG) };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `journal-budget-${todayISO()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  a.href = url; a.download = `journal-budget-${todayISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-
   setStatus("Export journal prêt ✅");
 }
-
 async function importJSON(file) {
   const text = await file.text();
   let payload;
@@ -1230,17 +850,15 @@ async function importJSON(file) {
   CFG = payload.cfg;
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
-
+  CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
   CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats[0] };
-  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
+  CFG.defaults.kid = null;
   if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
-
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
 
   await saveConfig(CFG);
-
   await dbClear(STORE_TX);
   await dbClear(STORE_LOG);
 
@@ -1250,34 +868,25 @@ async function importJSON(file) {
       date: String(r.date || ""),
       category: String(r.category || ""),
       amount: Math.round(Number(r.amount || 0)),
-      desc: String(r.desc || "").slice(0,100),
+      desc: String(r.desc || "").slice(0, 100),
+      note: (r.note !== undefined && r.note !== null) ? Number(r.note) : null,
+      moyenne: (r.moyenne !== undefined && r.moyenne !== null) ? Number(r.moyenne) : null,
+      matiere: r.matiere ? String(r.matiere) : null,
       createdAt: Number(r.createdAt || Date.now()),
       updatedAt: r.updatedAt ? Number(r.updatedAt) : null
     };
     if (!safe.date || !safe.category || !Number.isFinite(safe.amount) || !safe.desc) continue;
     await dbAdd(STORE_TX, safe);
   }
-
   if (Array.isArray(payload.log)) {
     for (const l of payload.log) {
-      const safeL = {
-        ts: Number(l.ts || Date.now()),
-        action: String(l.action || "IMPORT"),
-        amount: Math.round(Number(l.amount || 0)),
-        details: String(l.details || "")
-      };
-      await dbAdd(STORE_LOG, safeL);
+      await dbAdd(STORE_LOG, { ts: Number(l.ts || Date.now()), action: String(l.action || "IMPORT"), amount: Math.round(Number(l.amount || 0)), details: String(l.details || "") });
     }
   }
-
   await logAction("IMPORT", 0, "Import JSON complet (transactions + journal)");
   await initUIAfterConfig();
   setStatus("Import terminé ✅");
 }
-
-/* =========================
-   Log actions UI
-========================= */
 async function clearLog() {
   if (!confirm("Vider le journal des actions ?")) return;
   await dbClear(STORE_LOG);
@@ -1285,52 +894,35 @@ async function clearLog() {
   setStatus("Journal vidé ✅");
 }
 
-/* =========================
-   Init
-========================= */
+/* ========================= Init ========================= */
 async function initUIAfterConfig() {
   $("dateInput").value = todayISO();
-
   renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
-
+  renderMatiereSelect();
   FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
   renderFilterSelects();
-  $("fromDate").value = "";
-  $("toDate").value = "";
-  $("filterDesc").value = "";
-
+  $("fromDate").value = ""; $("toDate").value = ""; $("filterDesc").value = "";
   await loadSettingsUI();
   await refreshData();
-
   setEditMode(false);
   updateDescCounter();
-
   await updateBackupUI();
   maybeRemindBackup();
-
-  /* IMPORTANT: aucun enfant sélectionné au démarrage */
   setActiveChild(null);
   resetEntryForm();
   lockEntryForm(true);
-
   toggleSchoolFields();
 }
 
 async function init() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  }
-
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
   db = await openDB();
-
   CFG = await loadConfig();
-
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
-
+  CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
   CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
-  CFG.defaults.kid = null; /* IMPORTANT: aucun sélectionné au démarrage */
-
+  CFG.defaults.kid = null;
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
@@ -1338,25 +930,16 @@ async function init() {
   await initUIAfterConfig();
 
   $("saveDiskBtn").addEventListener("click", saveOrUpdate);
-$("cancelEditBtn").addEventListener("click", cancelEdit);
+  $("cancelEditBtn").addEventListener("click", cancelEdit);
   $("descInput").addEventListener("input", updateDescCounter);
-
   $("catSelect").addEventListener("change", toggleSchoolFields);
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
-$("backupNowBtn2").addEventListener("click", backupNow);
+  $("backupNowBtn2").addEventListener("click", backupNow);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
-
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
-  // Toggle affichage des filtres dans l’historique
-  if ($("toggleFiltersBtn")) {
-    $("toggleFiltersBtn").addEventListener("click", () => {
-      $("filtersWrap").classList.toggle("show");
-    });
-  }
-
-
+  if ($("toggleFiltersBtn")) $("toggleFiltersBtn").addEventListener("click", () => $("filtersWrap").classList.toggle("show"));
   $("applyFilterBtn").addEventListener("click", () => {
     FILTER.children = getSelectedValues($("filterChild"));
     FILTER.cats = getSelectedValues($("filterCat"));
@@ -1365,47 +948,29 @@ $("backupNowBtn2").addEventListener("click", backupNow);
     FILTER.to = $("toDate").value || "";
     renderTable();
   });
-
   $("clearFilterBtn").addEventListener("click", () => {
     FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
-
-    setSelectedValues($("filterChild"), []);
-    setSelectedValues($("filterCat"), []);
-    $("filterDesc").value = "";
-    $("fromDate").value = "";
-    $("toDate").value = "";
-
+    setSelectedValues($("filterChild"), []); setSelectedValues($("filterCat"), []);
+    $("filterDesc").value = ""; $("fromDate").value = ""; $("toDate").value = "";
     renderTable();
   });
   $("exportBtn").addEventListener("click", backupNow);
-$("importBtn").addEventListener("click", () => $("importFile").click());
-  $("importFile").addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    await importJSON(f);
-    e.target.value = "";
-  });
-
+  $("importBtn").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async (e) => { const f = e.target.files?.[0]; if (!f) return; await importJSON(f); e.target.value = ""; });
   $("clearLogBtn").addEventListener("click", clearLog);
   $("exportLogBtn").addEventListener("click", exportLogOnly);
-
   $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
   $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
-
+  $("saveMatieresCfgBtn").addEventListener("click", saveMatieresFromUI);
+  $("resetMatieresCfgBtn").addEventListener("click", resetMatieresToDefault);
   document.querySelectorAll('button[data-sort]').forEach(btn => {
     btn.addEventListener("click", () => {
       const col = btn.getAttribute("data-sort");
-      if (SORT.col === col) {
-        SORT.dir = (SORT.dir === "asc") ? "desc" : "asc";
-      } else {
-        SORT.col = col;
-        SORT.dir = "asc";
-        if (col === "date") SORT.dir = "desc";
-      }
+      if (SORT.col === col) SORT.dir = (SORT.dir === "asc") ? "desc" : "asc";
+      else { SORT.col = col; SORT.dir = col === "date" ? "desc" : "asc"; }
       renderTable();
     });
   });
-
   $("amtInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
   $("descInput").addEventListener("keydown", (e) => { if (e.key === "Enter") saveOrUpdate(); });
 }
@@ -1414,4 +979,3 @@ init();
 </script>
 </body>
 </html>
-
