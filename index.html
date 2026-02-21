@@ -26,6 +26,7 @@
     .actions > * { flex: 1; min-width: 140px; }
     .muted { color:#6b7280; font-size: 13px; }
     .hint { font-size:12px; color:#6b7280; margin-top:6px; }
+    .hint.debit { color:#b91c1c; font-weight: 700; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
     .totals { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .totalBox { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px 12px; }
@@ -100,6 +101,9 @@
     #rulesModalBox td { padding:7px 8px; border-bottom:1px solid #f0f1f4; }
     #rulesModalBox td:last-child { text-align:right; font-weight:700; color:#065f46; }
     #rulesModalClose { margin-top:16px; width:100%; }
+
+    /* Dépense amount field highlight */
+    #amtInput.depense-mode { border-color: #fca5a5; background: #fff5f5 !important; }
   </style>
 </head>
 <body>
@@ -235,6 +239,7 @@
         <div>
           <label>Montant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="amtInput" type="number" step="1" inputmode="numeric" placeholder="0" />
+          <div id="amtHint" class="hint" style="display:none;">⬇️ Dépense — sera soustrait automatiquement (signe − facultatif)</div>
         </div>
         <div>
           <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
@@ -393,7 +398,8 @@
 
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
-const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Argent dépensé","Gâterie","Éducation financière"];
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Dépense","Gâterie","Éducation financière"];
+const DEBIT_CATS = ["Dépense"]; // Catégories dont le montant est automatiquement négatif
 const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
 const DB_NAME = "BudgetEnfantsDB_v2";
 const DB_VERSION = 2;
@@ -417,6 +423,10 @@ let EDIT_MODE = false;
 let EDIT_ID = null;
 let SAVE_MSG_TIMER = null;
 const $ = (id) => document.getElementById(id);
+
+function isDebitCat(cat) {
+  return DEBIT_CATS.map(c => c.toLowerCase().trim()).includes((cat || "").toLowerCase().trim());
+}
 
 function nowISO() { return new Date().toISOString(); }
 function todayISO() {
@@ -564,9 +574,13 @@ function closeRulesModal() {
   $("rulesModal").classList.remove("open");
 }
 
-/* ========================= School fields ========================= */
+/* ========================= School fields + Dépense hint ========================= */
 function toggleSchoolFields() {
-  const isEcole = ($("catSelect").value || "").toLowerCase().trim() === "école";
+  const cat = $("catSelect").value || "";
+  const isEcole = cat.toLowerCase().trim() === "école";
+  const isDebit = isDebitCat(cat);
+
+  // École fields
   if (isEcole) {
     $("schoolFields").classList.add("visible");
     $("rulesInfoBtn").style.display = "inline-flex";
@@ -576,6 +590,17 @@ function toggleSchoolFields() {
     $("noteInput").value = "";
     $("moyenneInput").value = "";
     if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
+  }
+
+  // Dépense hint + styling
+  const amtHint = $("amtHint");
+  const amtInput = $("amtInput");
+  if (isDebit) {
+    amtHint.style.display = "block";
+    amtInput.classList.add("depense-mode");
+  } else {
+    amtHint.style.display = "none";
+    amtInput.classList.remove("depense-mode");
   }
 }
 
@@ -633,7 +658,7 @@ async function saveOrUpdate() {
 
   const dateVal = $("dateInput").value;
   const cat = $("catSelect").value;
-  const amt = parseInt($("amtInput").value, 10);
+  let amt = parseInt($("amtInput").value, 10);
   const desc = $("descInput").value.trim();
   const isEcole = (cat || "").toLowerCase().trim() === "école";
 
@@ -655,6 +680,11 @@ async function saveOrUpdate() {
   if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
     setSaveMsg("Veuillez compléter les infos manquantes avant d'enregistrer", "warn");
     return setStatus("Tous les champs sont obligatoires.");
+  }
+
+  // Auto-négatif pour les catégories débit (ex: Dépense)
+  if (isDebitCat(cat) && amt > 0) {
+    amt = -amt;
   }
 
   if (isEcole) {
