@@ -1,12 +1,56 @@
 {
-  "name": "Budget des enfants",
-  "short_name": "Budget",
+  "name": "R-compense — Budget Enfants",
+  "short_name": "R-compense",
+  "description": "Gestion des dépenses et récompenses pour Lily-Rose et Victor",
+  "lang": "fr-CA",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f6f7fb",
-  "theme_color": "#111827",
+  "orientation": "portrait-primary",
+  "background_color": "#1e0f46",
+  "theme_color": "#1e0f46",
+  "categories": ["finance", "kids", "education"],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Lily-Rose",
+      "short_name": "Lily-Rose",
+      "description": "Ouvrir le profil de Lily-Rose",
+      "url": "./index.html?kid=lily",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Victor",
+      "short_name": "Victor",
+      "description": "Ouvrir le profil de Victor",
+      "url": "./index.html?kid=victor",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
 }

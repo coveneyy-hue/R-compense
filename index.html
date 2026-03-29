@@ -2,10 +2,16 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta name="theme-color" content="#111827" />
-  <title>R-compense</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1e0f46" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="R-compense" />
+  <meta name="description" content="Gestion des dépenses et récompenses pour Lily-Rose et Victor" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>R-compense</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111827; }
     header { padding: 14px 16px; background: #111827; color: #fff; }
@@ -76,6 +82,42 @@
     .filtersWrap { display:none; margin-top:10px; }
     .filtersWrap.show { display:block; }
     .iconOnly { width:42px; padding:8px 0; }
+
+    /* ===== PWA Install Banner ===== */
+    #installBanner {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 480px;
+      background: linear-gradient(135deg, #1e0f46 0%, #6428b4 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      z-index: 999999;
+      align-items: center;
+      gap: 12px;
+    }
+    #installBanner.show { display: flex; }
+    #installBanner .install-icon { font-size: 32px; flex-shrink: 0; }
+    #installBanner .install-text { flex: 1; }
+    #installBanner .install-text strong { display: block; font-size: 15px; margin-bottom: 2px; }
+    #installBanner .install-text span { font-size: 12px; opacity: 0.82; }
+    #installBanner .install-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+    #installBtn {
+      background: #ffd700; color: #1e0f46; border: 0; border-radius: 12px;
+      padding: 8px 14px; font-weight: 900; font-size: 13px; cursor: pointer; white-space: nowrap;
+    }
+    #installDismissBtn {
+      background: transparent; color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 12px; padding: 6px 10px; font-size: 11px; cursor: pointer;
+    }
+
+    /* Safe area insets for notched/island phones */
+    body { padding-bottom: env(safe-area-inset-bottom, 0); }
 
     /* Info icon + popup */
     .backupInfoWrap { display:inline-flex; align-items:center; gap:6px; }
@@ -395,6 +437,19 @@
       <input id="importFile" type="file" accept="application/json" style="display:none;" />
     </section>
   </main>
+
+  <!-- PWA Install Banner -->
+  <div id="installBanner" role="complementary" aria-label="Installer l'application">
+    <div class="install-icon">⭐</div>
+    <div class="install-text">
+      <strong>Installer R-compense</strong>
+      <span>Accès rapide, fonctionne hors-ligne</span>
+    </div>
+    <div class="install-actions">
+      <button id="installBtn" type="button">Installer</button>
+      <button id="installDismissBtn" type="button">Plus tard</button>
+    </div>
+  </div>
 
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
@@ -1071,7 +1126,36 @@ async function initUIAfterConfig() {
   toggleSchoolFields();
 }
 
+/* ========================= PWA Install Prompt ========================= */
+let _deferredInstall = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  _deferredInstall = e;
+  const banner = document.getElementById("installBanner");
+  if (banner) banner.classList.add("show");
+});
+window.addEventListener("appinstalled", () => {
+  _deferredInstall = null;
+  const banner = document.getElementById("installBanner");
+  if (banner) banner.classList.remove("show");
+});
+
 async function init() {
+  // PWA install banner actions
+  const installBtn = document.getElementById("installBtn");
+  const dismissBtn = document.getElementById("installDismissBtn");
+  const banner = document.getElementById("installBanner");
+  if (installBtn) installBtn.addEventListener("click", async () => {
+    if (!_deferredInstall) return;
+    _deferredInstall.prompt();
+    const { outcome } = await _deferredInstall.userChoice;
+    _deferredInstall = null;
+    if (banner) banner.classList.remove("show");
+  });
+  if (dismissBtn) dismissBtn.addEventListener("click", () => {
+    if (banner) banner.classList.remove("show");
+  });
+
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
   db = await openDB();
   CFG = await loadConfig();
@@ -1085,6 +1169,12 @@ async function init() {
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
 
   await initUIAfterConfig();
+
+  // Support raccourcis PWA (?kid=lily ou ?kid=victor)
+  const urlParams = new URLSearchParams(window.location.search);
+  const kidParam = (urlParams.get("kid") || "").toLowerCase();
+  if (kidParam === "lily") setActiveChild("Lily-Rose");
+  else if (kidParam === "victor") setActiveChild("Victor");
 
   $("saveDiskBtn").addEventListener("click", saveOrUpdate);
   $("cancelEditBtn").addEventListener("click", cancelEdit);
