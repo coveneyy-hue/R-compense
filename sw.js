@@ -1,10 +1,12 @@
 /* =========================================================
-   R-compense — Service Worker v3
-   Stratégie : Cache-First pour les assets statiques,
-   Network-First pour les données dynamiques.
+   R-compense — Service Worker v4
+   Stratégie :
+   - Network-First pour la navigation HTML
+   - Cache-First pour les assets statiques
    ========================================================= */
 
-const CACHE_NAME = "rcompense-v3";
+const CACHE_NAME = "rcompense-v4";
+
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,7 +18,7 @@ const ASSETS = [
   "./icon-maskable-512.png"
 ];
 
-/* ---- Install : pré-cache tous les assets ---- */
+/* ---- Install : pré-cache des assets ---- */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
@@ -24,7 +26,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-/* ---- Activate : purge les anciens caches ---- */
+/* ---- Activate : purge anciens caches ---- */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -37,28 +39,45 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-/* ---- Fetch : Cache-First avec fallback réseau ---- */
+/* ---- Fetch ---- */
 self.addEventListener("fetch", (event) => {
-  // Ne pas intercepter les requêtes non-GET
   if (event.request.method !== "GET") return;
 
+  /* Navigation HTML : Network-First */
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put("./index.html", clone);
+            });
+          }
+          return response;
+        })
+        .catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  /* Assets statiques : Cache-First */
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
+
       return fetch(event.request)
         .then((response) => {
-          // Mettre en cache les nouvelles ressources valides
           if (response && response.status === 200 && response.type === "basic") {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone);
+            });
           }
           return response;
         })
         .catch(() => {
-          // Fallback : retourner la page principale si offline
-          if (event.request.mode === "navigate") {
-            return caches.match("./index.html");
-          }
+          return undefined;
         });
     })
   );
@@ -66,5 +85,7 @@ self.addEventListener("fetch", (event) => {
 
 /* ---- Message : forcer mise à jour ---- */
 self.addEventListener("message", (event) => {
-  if (event.data === "SKIP_WAITING") self.skipWaiting();
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
