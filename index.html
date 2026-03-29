@@ -591,7 +591,7 @@ function setEditMode(on) {
   $("editBadge").style.display = on ? "inline-block" : "none";
   $("cancelEditBtn").style.display = on ? "inline-block" : "none";
 }
-function updateDescCounter() { $("descCount").textContent = $("descInput").value.length; }
+function updateDescCounter() { const el = $("descCount"); if (el) el.textContent = $("descInput").value.length; }
 function renderSelectOptions(selectEl, opts, selected) {
   selectEl.innerHTML = "";
   for (const opt of opts) {
