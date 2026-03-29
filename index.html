@@ -82,6 +82,12 @@
     .filtersWrap { display:none; margin-top:10px; }
     .filtersWrap.show { display:block; }
     .iconOnly { width:42px; padding:8px 0; }
+    .rowActions { display:flex; gap:8px; align-items:center; justify-content:flex-end; flex-wrap:nowrap; }
+    .actionIconBtn { width:40px; min-width:40px; height:40px; padding:0; display:inline-flex; align-items:center; justify-content:center; border-radius:12px; font-size:18px; line-height:1; }
+    .actionIconBtn.secondary { background:#e5e7eb; color:#111827; border:1px solid #d1d5db; }
+    .actionIconBtn.danger { background:#b91c1c; color:#fff; }
+    th.actionsCol, td.actionsCol { width:96px; }
+
 
     /* ===== PWA Install Banner ===== */
     #installBanner {
@@ -349,7 +355,7 @@
                 <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
                 <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th>Description</th>
-                <th style="width:160px;">Actions</th>
+                <th class="actionsCol">Actions</th>
               </tr>
             </thead>
             <tbody id="txBody"></tbody>
@@ -900,9 +906,11 @@ function renderTable() {
         <td style="font-size:13px;">${row.matiere || ""}</td>
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
         <td>${row.desc}</td>
-        <td>
-          <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
-          <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
+        <td class="actionsCol">
+          <div class="rowActions">
+            <button class="actionIconBtn secondary" onclick="editRecord(${row.id})" type="button" title="Modifier" aria-label="Modifier">✏️</button>
+            <button class="actionIconBtn danger" onclick="deleteRecord(${row.id})" type="button" title="Supprimer" aria-label="Supprimer">🗑️</button>
+          </div>
         </td>`;
       tbody.appendChild(tr);
     }
