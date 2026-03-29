@@ -357,10 +357,10 @@
               <tr>
                 <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
                 <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
+                <th>Description</th>
                 <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
                 <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
                 <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
-                <th>Description</th>
                 <th style="width:92px;">Actions</th>
               </tr>
             </thead>
@@ -908,10 +908,10 @@ function renderTable() {
       tr.innerHTML = `
         <td><span class="pill">${row.child}</span></td>
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
+        <td>${row.desc}</td>
         <td>${formatDateHuman(row.date)}</td>
         <td>${row.category}</td>
         <td style="font-size:13px;">${row.matiere || ""}</td>
-        <td>${row.desc}</td>
         <td>
           <div class="actionBtns">
             <button class="actionIconBtn secondary" onclick="editRecord(${row.id})" type="button" title="Modifier" aria-label="Modifier">✏️</button>
