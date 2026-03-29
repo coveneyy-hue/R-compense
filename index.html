@@ -297,8 +297,7 @@
         <div>
           <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="descInput" type="text" maxlength="100" />
-          <div class="hint"><span id="descCount">0</span>/100</div>
-        </div>
+          </div>
       </div>
 
       <div class="actions" style="margin-top:12px;">
@@ -357,10 +356,10 @@
             <thead>
               <tr>
                 <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
+                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
                 <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
                 <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
-                <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th>Description</th>
                 <th style="width:92px;">Actions</th>
               </tr>
@@ -908,10 +907,10 @@ function renderTable() {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><span class="pill">${row.child}</span></td>
+        <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
         <td>${formatDateHuman(row.date)}</td>
         <td>${row.category}</td>
         <td style="font-size:13px;">${row.matiere || ""}</td>
-        <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
         <td>${row.desc}</td>
         <td>
           <div class="actionBtns">
