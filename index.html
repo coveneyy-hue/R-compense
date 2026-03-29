@@ -82,6 +82,19 @@
     .filtersWrap { display:none; margin-top:10px; }
     .filtersWrap.show { display:block; }
     .iconOnly { width:42px; padding:8px 0; }
+    .actionBtns { display:flex; gap:6px; align-items:center; white-space:nowrap; }
+    .actionIconBtn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      font-size: 16px;
+      line-height: 1;
+    }
+
 
     /* ===== PWA Install Banner ===== */
     #installBanner {
@@ -149,9 +162,7 @@
   </style>
 </head>
 <body>
-  <header><h1>R-compense</h1></header>
-
-  <div class="kidBar">
+<div class="kidBar">
     <button id="kidLily" class="kidBtn lily" type="button">Lily-Rose</button>
     <button id="kidVictor" class="kidBtn victor" type="button">Victor</button>
     <div class="saveWrap">
@@ -351,7 +362,7 @@
                 <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
                 <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th>Description</th>
-                <th style="width:160px;">Actions</th>
+                <th style="width:92px;">Actions</th>
               </tr>
             </thead>
             <tbody id="txBody"></tbody>
@@ -903,8 +914,10 @@ function renderTable() {
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
         <td>${row.desc}</td>
         <td>
-          <button class="smallBtn secondary" onclick="editRecord(${row.id})" type="button">Modifier</button>
-          <button class="smallBtn danger" onclick="deleteRecord(${row.id})" type="button">Supprimer</button>
+          <div class="actionBtns">
+            <button class="actionIconBtn secondary" onclick="editRecord(${row.id})" type="button" title="Modifier" aria-label="Modifier">✏️</button>
+            <button class="actionIconBtn danger" onclick="deleteRecord(${row.id})" type="button" title="Supprimer" aria-label="Supprimer">🗑️</button>
+          </div>
         </td>`;
       tbody.appendChild(tr);
     }
