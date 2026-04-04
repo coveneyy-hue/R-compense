@@ -456,6 +456,7 @@
         <div class="sort-bar">
           Trier les paiements :
           <button id="sortAchatsTxBtn" class="secondary smallBtn" type="button">Date ↓</button>
+          <button id="deleteArchivedAchatsBtn" class="danger smallBtn" type="button" style="display:none;" onclick="deleteArchivedAchats()">🗑️ Supprimer les archivés</button>
         </div>
 
         <!-- Formulaire création d'un achat -->
@@ -503,6 +504,7 @@
         <div class="sort-bar">
           Trier les dépenses :
           <button id="sortAvancesTxBtn" class="secondary smallBtn" type="button">Date ↓</button>
+          <button id="deleteArchivedAvancesBtn" class="danger smallBtn" type="button" style="display:none;" onclick="deleteArchivedAvances()">🗑️ Supprimer les archivées</button>
         </div>
 
         <!-- Formulaire création d'une avance -->
@@ -1290,6 +1292,16 @@ async function toggleAchatClosed(id) {
   await renderAchats();
 }
 
+async function deleteArchivedAchats() {
+  const achats = await dbGetAll(STORE_ACHATS);
+  const archived = achats.filter(a => a.closed);
+  if (archived.length === 0) return setStatus("Aucun achat archivé à supprimer.");
+  if (!confirm(`Supprimer ${archived.length} achat(s) archivé(s) ? Les transactions liées ne seront pas supprimées.`)) return;
+  for (const a of archived) await dbDelete(STORE_ACHATS, a.id);
+  await refreshData();
+  setStatus(`${archived.length} achat(s) archivé(s) supprimé(s) ✅`);
+}
+
 async function renderAchats() {
   const achats = await dbGetAll(STORE_ACHATS);
   const allTx = await dbGetAll(STORE_TX);
@@ -1320,6 +1332,14 @@ async function renderAchats() {
   // Bouton de tri
   const btn = $("sortAchatsTxBtn");
   if (btn) btn.textContent = ACHATS_TX_SORT === "desc" ? "Date ↓" : "Date ↑";
+
+  // Bouton "Supprimer les archivés" — visible seulement s'il y en a
+  const nbArchived = achats.filter(a => a.closed).length;
+  const delBtn = $("deleteArchivedAchatsBtn");
+  if (delBtn) {
+    delBtn.style.display = nbArchived > 0 ? "inline-block" : "none";
+    delBtn.textContent = `🗑️ Supprimer les archivés (${nbArchived})`;
+  }
 
   el.innerHTML = achats.map(achat => {
     let txLinked = allTx.filter(t => t.achatId === achat.id);
@@ -1446,6 +1466,16 @@ async function toggleAvanceClosed(id) {
   await renderAvances();
 }
 
+async function deleteArchivedAvances() {
+  const avances = await dbGetAll(STORE_AVANCES);
+  const archived = avances.filter(a => a.closed);
+  if (archived.length === 0) return setStatus("Aucune avance archivée à supprimer.");
+  if (!confirm(`Supprimer ${archived.length} avance(s) archivée(s) ? Les transactions liées ne seront pas supprimées.`)) return;
+  for (const a of archived) await dbDelete(STORE_AVANCES, a.id);
+  await refreshData();
+  setStatus(`${archived.length} avance(s) archivée(s) supprimée(s) ✅`);
+}
+
 async function renderAvances() {
   const avances = await dbGetAll(STORE_AVANCES);
   const allTx = await dbGetAll(STORE_TX);
@@ -1476,6 +1506,14 @@ async function renderAvances() {
   // Bouton de tri
   const btn = $("sortAvancesTxBtn");
   if (btn) btn.textContent = AVANCES_TX_SORT === "desc" ? "Date ↓" : "Date ↑";
+
+  // Bouton "Supprimer les archivées" — visible seulement s'il y en a
+  const nbArchivedAv = avances.filter(a => a.closed).length;
+  const delBtnAv = $("deleteArchivedAvancesBtn");
+  if (delBtnAv) {
+    delBtnAv.style.display = nbArchivedAv > 0 ? "inline-block" : "none";
+    delBtnAv.textContent = `🗑️ Supprimer les archivées (${nbArchivedAv})`;
+  }
 
   el.innerHTML = avances.map(avance => {
     let txLinked = allTx.filter(t => t.avanceId === avance.id);
