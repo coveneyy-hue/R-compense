@@ -1394,7 +1394,7 @@ async function renderAchats() {
             <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Remboursé" : `Solde : ${solde} $`}</span>
             <div style="font-size:12px;color:#6b7280;">Payé : ${-paid} $</div>
             <div class="actionBtns">
-              <button class="actionIconBtn secondary" onclick="toggleAchatClosed(${achat.id})" type="button" title="${achat.closed ? \"Réactiver\" : \"Archiver\"}">${achat.closed ? \"♻️\" : \"📦\"}</button>
+              <button class="actionIconBtn secondary" onclick="toggleAchatClosed(${achat.id})" type="button" title="${achat.closed ? 'Réactiver' : 'Archiver'}">${achat.closed ? '♻️' : '📦'}</button>
               <button class="actionIconBtn danger" onclick="deleteAchat(${achat.id})" type="button" title="Supprimer">🗑️</button>
             </div>
           </div>
@@ -1568,7 +1568,7 @@ async function renderAvances() {
             <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Épuisée" : `Dispo : ${solde} $`}</span>
             <div style="font-size:12px;color:#6b7280;">Utilisé : ${-spent} $</div>
             <div class="actionBtns">
-              <button class="actionIconBtn secondary" onclick="toggleAvanceClosed(${avance.id})" type="button" title="${avance.closed ? \"Réactiver\" : \"Archiver\"}">${avance.closed ? \"♻️\" : \"📦\"}</button>
+              <button class="actionIconBtn secondary" onclick="toggleAvanceClosed(${avance.id})" type="button" title="${avance.closed ? 'Réactiver' : 'Archiver'}">${avance.closed ? '♻️' : '📦'}</button>
               <button class="actionIconBtn danger" onclick="deleteAvance(${avance.id})" type="button" title="Supprimer">🗑️</button>
             </div>
           </div>
