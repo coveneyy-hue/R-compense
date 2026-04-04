@@ -356,23 +356,20 @@
         </div>
       </div>
 
-      <!-- Lier à un achat ou une avance — toujours visible, optionnel sauf si catégorie Paiement/Avance -->
-      <div style="margin-top:10px;">
-        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">🔗 Lier à…</div>
-        <div class="row">
-          <div>
-            <label id="achatLabel">Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span></label>
-            <select id="achatSelect"><option value="">— Aucun —</option></select>
-            <div id="achatErr" class="field-error"></div>
-            <div id="achatHint" class="hint" style="margin-top:4px;"></div>
-          </div>
-          <div>
-            <label id="avanceLabel">Avance <span class="muted" style="font-size:11px;">(optionnel)</span></label>
-            <select id="avanceSelect"><option value="">— Aucune —</option></select>
-            <div id="avanceErr" class="field-error"></div>
-            <div id="avanceHint" class="hint" style="margin-top:4px;"></div>
-          </div>
-        </div>
+      <!-- Achat — visible seulement si catégorie Paiement -->
+      <div id="achatField" style="margin-top:10px; display:none;">
+        <label id="achatLabel">Achat à rembourser <span style="color:#b91c1c;font-size:11px;">obligatoire</span></label>
+        <select id="achatSelect"><option value="">— Sélectionner un achat —</option></select>
+        <div id="achatErr" class="field-error"></div>
+        <div id="achatHint" class="hint" style="margin-top:4px;"></div>
+      </div>
+
+      <!-- Avance — visible seulement si catégorie Avance -->
+      <div id="avanceField" style="margin-top:10px; display:none;">
+        <label id="avanceLabel">Avance à utiliser <span style="color:#b91c1c;font-size:11px;">obligatoire</span></label>
+        <select id="avanceSelect"><option value="">— Sélectionner une avance —</option></select>
+        <div id="avanceErr" class="field-error"></div>
+        <div id="avanceHint" class="hint" style="margin-top:4px;"></div>
       </div>
 
       <div class="actions" style="margin-top:12px;">
@@ -845,23 +842,15 @@ async function toggleSchoolFields() {
     if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
   }
 
-  // Mettre à jour les labels des sélecteurs de liaison selon la catégorie
-  const achatLabel = $("achatLabel");
-  const avanceLabel = $("avanceLabel");
-  if (achatLabel) {
-    achatLabel.innerHTML = isPaiement
-      ? `Achat à rembourser <span style="color:#b91c1c;font-size:11px;">obligatoire</span>`
-      : `Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span>`;
-  }
-  if (avanceLabel) {
-    avanceLabel.innerHTML = isAvance
-      ? `Avance à utiliser <span style="color:#b91c1c;font-size:11px;">obligatoire</span>`
-      : `Avance <span class="muted" style="font-size:11px;">(optionnel)</span>`;
-  }
+  // Afficher/masquer les champs achat et avance selon la catégorie
+  const achatField = $("achatField");
+  const avanceField = $("avanceField");
+  if (achatField) achatField.style.display = isPaiement ? "block" : "none";
+  if (avanceField) avanceField.style.display = isAvance ? "block" : "none";
 
-  // Toujours remplir les deux listes
-  await refreshAchatSelect();
-  await refreshAvanceSelect();
+  // Remplir les listes seulement si visibles
+  if (isPaiement) await refreshAchatSelect();
+  if (isAvance) await refreshAvanceSelect();
 
   // Dépense hint + styling
   const amtHint = $("amtHint");
@@ -925,11 +914,9 @@ function resetEntryForm() {
   $("amtHint").style.display = "none";
   $("amtInput").classList.remove("depense-mode");
   $("rulesInfoBtn").style.display = "none";
-  // Reset labels to optional
-  const al = $("achatLabel");
-  const avl = $("avanceLabel");
-  if (al) al.innerHTML = `Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span>`;
-  if (avl) avl.innerHTML = `Avance <span class="muted" style="font-size:11px;">(optionnel)</span>`;
+  // Masquer les champs liaison
+  const af = $("achatField"); if (af) af.style.display = "none";
+  const avf = $("avanceField"); if (avf) avf.style.display = "none";
   updateDescCounter();
   // Clear all field-level errors
   ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","achatErr","avanceErr"]
