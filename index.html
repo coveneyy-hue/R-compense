@@ -171,7 +171,7 @@
       padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px;
       margin-bottom: 8px; gap: 10px; flex-wrap: wrap;
     }
-    .achat-item.done, .avance-item.done { opacity: .5; }
+    .achat-item.done, .avance-item.done { opacity: .6; border-style: dashed; background: #f9fafb; }
     .achat-info, .avance-info { flex: 1; }
     .achat-info .title, .avance-info .title { font-weight: 900; font-size: 15px; }
     .achat-info .meta, .avance-info .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
@@ -446,7 +446,7 @@
     </section>
 
     <section class="card">
-      <details id="achatsDetails">
+      <details id="achatsDetails" open>
         <summary>💳 Achats à tempérament</summary>
 
         <!-- Totaux globaux -->
@@ -494,7 +494,7 @@
     </section>
 
     <section class="card">
-      <details id="avancesDetails">
+      <details id="avancesDetails" open>
         <summary>🎁 Avances disponibles</summary>
 
         <!-- Totaux globaux -->
@@ -1369,6 +1369,7 @@ async function renderAchats() {
 
     return `
     <div class="achat-item ${isDone ? "done" : ""}">
+        ${achat.closed ? '<div style="font-size:11px;font-weight:900;color:#6b7280;letter-spacing:.5px;margin-bottom:4px;">🔒 ARCHIVÉ</div>' : ""}
       <div style="width:100%;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
@@ -1542,6 +1543,7 @@ async function renderAvances() {
 
     return `
     <div class="avance-item ${isDone ? "done" : ""}">
+        ${avance.closed ? '<div style="font-size:11px;font-weight:900;color:#6b7280;letter-spacing:.5px;margin-bottom:4px;">🔒 ARCHIVÉE</div>' : ""}
       <div style="width:100%;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
