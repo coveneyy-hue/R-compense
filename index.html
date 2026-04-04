@@ -623,8 +623,10 @@
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
 const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
 const DEBIT_CATS = ["Dépense","Paiement"]; // Catégories dont le montant est automatiquement négatif
-const NEUTRAL_CATS = ["Avance"]; // N'affectent pas la balance de l'enfant
+const NEUTRAL_CATS = []; // Avance est désormais positif pour la balance de l'enfant
 const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
+// Catégories obligatoires injectées si absentes de la config
+const REQUIRED_CATS = ["Paiement", "Avance"];
 const DB_NAME = "BudgetEnfantsDB_v2";
 const DB_VERSION = 3;
 const STORE_CONFIG = "config";
@@ -991,8 +993,8 @@ async function saveOrUpdate() {
   if (isDebitCat(cat) && amt > 0) {
     amt = -amt;
   }
-  // Pour Avance: on stocke négatif (déduction du pool) mais neutre pour la balance enfant
-  if (isAvance && amt > 0) {
+  // Pour Avance: montant POSITIF — ajoute au solde de l'enfant et réduit le pool
+  if (isAvance && amt < 0) {
     amt = -amt;
   }
 
@@ -1016,7 +1018,7 @@ async function saveOrUpdate() {
     if (avance) {
       const txAll = await dbGetAll(STORE_TX);
       const spent = txAll.filter(t => t.avanceId === avanceId).reduce((s, t) => s + (t.amount || 0), 0);
-      const solde = avance.initialAmount + spent;
+      const solde = avance.initialAmount - spent; // tx sont positives maintenant
       if (Math.abs(amt) > solde + 0.01) {
         setSaveMsg(`Dépense dépasse le solde de l'avance (${solde} $)`, "warn");
         return setStatus(`Le solde disponible de "${avance.desc}" est de ${solde} $.`);
@@ -1458,12 +1460,12 @@ async function renderAvances() {
   for (const av of avances) {
     const sp = allTx.filter(t => t.avanceId === av.id).reduce((s, t) => s + (t.amount || 0), 0);
     grandInitial += av.initialAmount;
-    grandSpent += -sp;
+    grandSpent += sp; // tx positives
   }
-  const grandDispo = grandInitial - grandSpent;
+  const grandDispo = grandInitial - grandSpent; // grandSpent est la somme positive utilisée
   if (totalsEl) totalsEl.innerHTML = `
     <div class="section-total-box"><div class="stb-label">Total des avances</div><div class="stb-val">${grandInitial} $</div></div>
-    <div class="section-total-box"><div class="stb-label">Total utilisé</div><div class="stb-val amt neg">${grandSpent} $</div></div>
+    <div class="section-total-box"><div class="stb-label">Total utilisé</div><div class="stb-val amt neg">-${grandSpent} $</div></div>
     <div class="section-total-box"><div class="stb-label">Disponible global</div><div class="stb-val ${grandDispo > 0 ? "amt pos" : "amt neg"}">${grandDispo} $</div></div>`;
 
   if (avances.length === 0) {
@@ -1481,9 +1483,9 @@ async function renderAvances() {
       ? (a.date || "").localeCompare(b.date || "")
       : (b.date || "").localeCompare(a.date || ""));
 
-    const spent = txLinked.reduce((s, t) => s + (t.amount || 0), 0);
-    const solde = avance.initialAmount + spent;
-    const pct = Math.min(100, Math.round(((-spent) / avance.initialAmount) * 100));
+    const spent = txLinked.reduce((s, t) => s + (t.amount || 0), 0); // somme positive
+    const solde = avance.initialAmount - spent;
+    const pct = Math.min(100, Math.round((spent / avance.initialAmount) * 100));
     const isDone = solde <= 0 || avance.closed;
     const soldeClass = isDone ? "done" : (solde <= avance.initialAmount * 0.25 ? "warn" : "ok");
 
@@ -1497,7 +1499,7 @@ async function renderAvances() {
 
     const txFoot = txLinked.length > 0 ? `<tfoot><tr style="font-weight:900;background:#f9fafb;">
       <td colspan="2" style="padding:6px 6px;">Total utilisé</td>
-      <td class="right" style="padding:6px 6px;"><span class="amt neg">${spent} $</span></td>
+      <td class="right" style="padding:6px 6px;"><span class="amt neg">-${spent} $</span></td>
     </tr></tfoot>` : "";
 
     return `
@@ -1506,7 +1508,7 @@ async function renderAvances() {
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
             <div class="title">${avance.desc}</div>
-            <div class="meta">Initial : <strong>${avance.initialAmount} $</strong> · Utilisé : ${-spent} $</div>
+            <div class="meta">Initial : <strong>${avance.initialAmount} $</strong> · Utilisé : ${spent} $</div>
             <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
@@ -1519,7 +1521,7 @@ async function renderAvances() {
           </div>
         </div>
         <details class="tx-detail-wrap">
-          <summary>${txLinked.length} dépense${txLinked.length !== 1 ? "s" : ""} · Utilisé : ${-spent} $ · Disponible : ${Math.max(0, solde)} $</summary>
+          <summary>${txLinked.length} dépense${txLinked.length !== 1 ? "s" : ""} · Utilisé : ${spent} $ · Disponible : ${Math.max(0, solde)} $</summary>
           <table class="tx-mini-table">
             <thead><tr><th>Date</th><th>Description</th><th class="right">Montant</th></tr></thead>
             <tbody>${txRows}</tbody>
@@ -1545,7 +1547,7 @@ async function refreshAvanceSelect() {
   for (const avance of avances) {
     if (avance.closed) continue;
     const spent = allTx.filter(t => t.avanceId === avance.id).reduce((s, t) => s + (t.amount || 0), 0);
-    const solde = avance.initialAmount + spent;
+    const solde = avance.initialAmount - spent; // tx positives
     if (isAvance && solde <= 0) continue; // Pour Avance obligatoire: masquer si épuisée
     const opt = document.createElement("option");
     opt.value = avance.id;
@@ -1561,8 +1563,8 @@ async function refreshAvanceSelect() {
     const avance = avances.find(a => a.id === id);
     if (!avance) return;
     const spent = allTx.filter(t => t.avanceId === id).reduce((s, t) => s + (t.amount || 0), 0);
-    const solde = avance.initialAmount + spent;
-    $("avanceHint").textContent = `"${avance.desc}" · Initial : ${avance.initialAmount} $ · Utilisé : ${-spent} $ · Disponible : ${Math.max(0,solde)} $`;
+    const solde = avance.initialAmount - spent;
+    $("avanceHint").textContent = `"${avance.desc}" · Initial : ${avance.initialAmount} $ · Utilisé : ${spent} $ · Disponible : ${Math.max(0,solde)} $`;
   };
   sel.onchange = updateHint;
   updateHint();
@@ -1658,14 +1660,20 @@ async function exportCSV() {
 
 /* ========================= Import / Export JSON ========================= */
 async function exportJSON() {
-  const payload = { version: 1, exportedAt: nowISO(), cfg: CFG, tx: await dbGetAll(STORE_TX), log: await dbGetAll(STORE_LOG) };
+  const payload = {
+    version: 2, exportedAt: nowISO(), cfg: CFG,
+    tx: await dbGetAll(STORE_TX),
+    log: await dbGetAll(STORE_LOG),
+    achats: await dbGetAll(STORE_ACHATS),
+    avances: await dbGetAll(STORE_AVANCES)
+  };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = `budget-enfants-${todayISO()}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  await logAction("EXPORT", 0, "Export JSON complet (transactions + journal)");
+  await logAction("EXPORT", 0, "Export JSON complet (tx + journal + achats + avances)");
   await refreshData();
   setStatus("Export prêt ✅");
 }
@@ -1688,6 +1696,8 @@ async function importJSON(file) {
   CFG = payload.cfg;
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+  // Injecter les catégories obligatoires si absentes
+  for (const rc of REQUIRED_CATS) { if (!CFG.cats.includes(rc)) CFG.cats.push(rc); }
   CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
   CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats[0] };
   CFG.defaults.kid = null;
@@ -1699,6 +1709,8 @@ async function importJSON(file) {
   await saveConfig(CFG);
   await dbClear(STORE_TX);
   await dbClear(STORE_LOG);
+  await dbClear(STORE_ACHATS);
+  await dbClear(STORE_AVANCES);
 
   for (const r of payload.tx) {
     const safe = {
@@ -1710,6 +1722,8 @@ async function importJSON(file) {
       note: (r.note !== undefined && r.note !== null) ? Number(r.note) : null,
       moyenne: (r.moyenne !== undefined && r.moyenne !== null) ? Number(r.moyenne) : null,
       matiere: r.matiere ? String(r.matiere) : null,
+      achatId: r.achatId ? Number(r.achatId) : null,
+      avanceId: r.avanceId ? Number(r.avanceId) : null,
       createdAt: Number(r.createdAt || Date.now()),
       updatedAt: r.updatedAt ? Number(r.updatedAt) : null
     };
@@ -1721,7 +1735,26 @@ async function importJSON(file) {
       await dbAdd(STORE_LOG, { ts: Number(l.ts || Date.now()), action: String(l.action || "IMPORT"), amount: Math.round(Number(l.amount || 0)), details: String(l.details || "") });
     }
   }
-  await logAction("IMPORT", 0, "Import JSON complet (transactions + journal)");
+  // Restaurer achats (version 2+)
+  if (Array.isArray(payload.achats)) {
+    for (const a of payload.achats) {
+      await dbAdd(STORE_ACHATS, {
+        child: String(a.child || ""), desc: String(a.desc || ""),
+        totalAmount: Number(a.totalAmount || 0), dueDate: a.dueDate || null,
+        createdAt: Number(a.createdAt || Date.now()), closed: !!a.closed
+      });
+    }
+  }
+  // Restaurer avances (version 2+)
+  if (Array.isArray(payload.avances)) {
+    for (const av of payload.avances) {
+      await dbAdd(STORE_AVANCES, {
+        desc: String(av.desc || ""), initialAmount: Number(av.initialAmount || 0),
+        createdAt: Number(av.createdAt || Date.now()), closed: !!av.closed
+      });
+    }
+  }
+  await logAction("IMPORT", 0, "Import JSON complet (tx + journal + achats + avances)");
   await initUIAfterConfig();
   setStatus("Import terminé ✅");
 }
@@ -1811,6 +1844,8 @@ async function init() {
   CFG = await loadConfig();
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+  // Injecter les catégories obligatoires si elles sont absentes (migration)
+  for (const rc of REQUIRED_CATS) { if (!CFG.cats.includes(rc)) CFG.cats.push(rc); }
   CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
   CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
   CFG.defaults.kid = null;
