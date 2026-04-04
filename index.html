@@ -159,6 +159,51 @@
 
     /* Dépense amount field highlight */
     #amtInput.depense-mode { border-color: #fca5a5; background: #fff5f5 !important; }
+
+    /* Achats & Avances lists */
+    .achat-item, .avance-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 12px;
+      margin-bottom: 8px; gap: 10px; flex-wrap: wrap;
+    }
+    .achat-item.done, .avance-item.done { opacity: .5; }
+    .achat-info, .avance-info { flex: 1; }
+    .achat-info .title, .avance-info .title { font-weight: 900; font-size: 15px; }
+    .achat-info .meta, .avance-info .meta { font-size: 12px; color: #6b7280; margin-top: 2px; }
+    .progress-bar-wrap { height: 6px; background: #e5e7eb; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 99px; background: #065f46; transition: width .3s; }
+    .progress-bar.danger { background: #b91c1c; }
+    .badge-solde { font-size: 13px; font-weight: 900; white-space: nowrap; }
+    .badge-solde.ok { color: #065f46; }
+    .badge-solde.warn { color: #b45309; }
+    .badge-solde.done { color: #6b7280; }
+
+    /* Mini form inside cards */
+    .mini-form { background: #f9fafb; border-radius: 12px; padding: 12px; margin-top: 10px; }
+    .mini-form .row { margin-top: 8px; }
+
+    /* Transaction detail inside achat/avance */
+    .tx-detail-wrap { margin-top: 8px; }
+    .tx-detail-wrap summary {
+      font-size: 12px; color: #374151; cursor: pointer; padding: 6px 0;
+      list-style: none; display: flex; align-items: center; gap: 6px;
+    }
+    .tx-detail-wrap summary::-webkit-details-marker { display: none; }
+    .tx-detail-wrap summary::before { content: "▸"; font-size: 11px; color: #6b7280; }
+    .tx-detail-wrap[open] summary::before { content: "▾"; }
+    .tx-mini-table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+    .tx-mini-table th { font-size: 11px; color: #6b7280; padding: 4px 6px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    .tx-mini-table th.right, .tx-mini-table td.right { text-align: right; }
+    .tx-mini-table td { padding: 6px 6px; border-bottom: 1px solid #f3f4f6; }
+    .tx-mini-table tr:last-child td { border-bottom: none; }
+    .section-totals { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; margin-top: 4px; }
+    .section-total-box { flex: 1; min-width: 100px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; }
+    .section-total-box .stb-label { font-size: 11px; color: #6b7280; }
+    .section-total-box .stb-val { font-size: 16px; font-weight: 900; margin-top: 2px; }
+    .sort-bar { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; font-size: 12px; color: #6b7280; }
+    .sort-bar button { font-size: 12px; padding: 4px 10px; border-radius: 8px; }
+  
+  
   </style>
 </head>
 <body>
@@ -297,7 +342,24 @@
         <div>
           <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="descInput" type="text" maxlength="100" />
+        </div>
+      </div>
+
+      <!-- Lier à un achat ou une avance — toujours visible, optionnel sauf si catégorie Paiement/Avance -->
+      <div style="margin-top:10px;">
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;">🔗 Lier à…</div>
+        <div class="row">
+          <div>
+            <label id="achatLabel">Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span></label>
+            <select id="achatSelect"><option value="">— Aucun —</option></select>
+            <div id="achatHint" class="hint" style="margin-top:4px;"></div>
           </div>
+          <div>
+            <label id="avanceLabel">Avance <span class="muted" style="font-size:11px;">(optionnel)</span></label>
+            <select id="avanceSelect"><option value="">— Aucune —</option></select>
+            <div id="avanceHint" class="hint" style="margin-top:4px;"></div>
+          </div>
+        </div>
       </div>
 
       <div class="actions" style="margin-top:12px;">
@@ -367,6 +429,89 @@
             <tbody id="txBody"></tbody>
           </table>
         </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <details id="achatsDetails">
+        <summary>💳 Achats à tempérament</summary>
+
+        <!-- Totaux globaux -->
+        <div id="achatsTotals" class="section-totals" style="margin-top:12px;"></div>
+
+        <!-- Tri des transactions -->
+        <div class="sort-bar">
+          Trier les paiements :
+          <button id="sortAchatsTxBtn" class="secondary smallBtn" type="button">Date ↓</button>
+        </div>
+
+        <!-- Formulaire création d'un achat -->
+        <div class="mini-form">
+          <div style="font-weight:900; font-size:13px; margin-bottom:8px;">Nouvel achat</div>
+          <div>
+            <label>Enfant</label>
+            <select id="newAchatChild">
+              <option value="Lily-Rose">Lily-Rose</option>
+              <option value="Victor">Victor</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <div>
+              <label>Description</label>
+              <input id="newAchatDesc" type="text" placeholder="ex: iPhone 16" maxlength="80" />
+            </div>
+            <div>
+              <label>Montant total ($)</label>
+              <input id="newAchatAmt" type="number" step="1" min="1" placeholder="1900" />
+            </div>
+          </div>
+          <div style="margin-top:8px;">
+            <label>Date d'échéance (optionnel)</label>
+            <input id="newAchatDue" type="date" />
+          </div>
+          <div class="actions" style="margin-top:10px;">
+            <button id="addAchatBtn" type="button">+ Créer l'achat</button>
+          </div>
+        </div>
+
+        <!-- Liste des achats -->
+        <div id="achatsList" style="margin-top:12px;"></div>
+      </details>
+    </section>
+
+    <section class="card">
+      <details id="avancesDetails">
+        <summary>🎁 Avances disponibles</summary>
+
+        <!-- Totaux globaux -->
+        <div id="avancesTotals" class="section-totals" style="margin-top:12px;"></div>
+
+        <!-- Tri des transactions -->
+        <div class="sort-bar">
+          Trier les dépenses :
+          <button id="sortAvancesTxBtn" class="secondary smallBtn" type="button">Date ↓</button>
+        </div>
+
+        <!-- Formulaire création d'une avance -->
+        <div class="mini-form">
+          <div style="font-weight:900; font-size:13px; margin-bottom:8px;">Nouvelle avance</div>
+          <div class="row">
+            <div>
+              <label>Description</label>
+              <input id="newAvanceDesc" type="text" placeholder="ex: Anniversaire Victor" maxlength="80" />
+            </div>
+            <div>
+              <label>Montant ($)</label>
+              <input id="newAvanceAmt" type="number" step="1" min="1" placeholder="500" />
+            </div>
+          </div>
+          <div class="actions" style="margin-top:10px;">
+            <button id="addAvanceBtn" type="button">+ Créer l'avance</button>
+          </div>
+        </div>
+
+        <!-- Liste des avances -->
+        <div id="avancesList" style="margin-top:12px;"></div>
       </details>
     </section>
 
@@ -463,14 +608,17 @@
 
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
-const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Dépense","Gâterie","Éducation financière"];
-const DEBIT_CATS = ["Dépense"]; // Catégories dont le montant est automatiquement négatif
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
+const DEBIT_CATS = ["Dépense","Paiement"]; // Catégories dont le montant est automatiquement négatif
+const NEUTRAL_CATS = ["Avance"]; // N'affectent pas la balance de l'enfant
 const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
 const DB_NAME = "BudgetEnfantsDB_v2";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_CONFIG = "config";
 const STORE_TX = "transactions";
 const STORE_LOG = "log";
+const STORE_ACHATS = "achats";
+const STORE_AVANCES = "avances";
 
 let db = null;
 let CFG = {
@@ -484,6 +632,8 @@ let ALL_DATA = [];
 let ACTIVE_CHILD = null;
 let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
 let SORT = { col: "date", dir: "desc" };
+let ACHATS_TX_SORT = "desc";   // tri des transactions dans la section Achats
+let AVANCES_TX_SORT = "desc";  // tri des transactions dans la section Avances
 let EDIT_MODE = false;
 let EDIT_ID = null;
 let SAVE_MSG_TIMER = null;
@@ -492,6 +642,11 @@ const $ = (id) => document.getElementById(id);
 function isDebitCat(cat) {
   return DEBIT_CATS.map(c => c.toLowerCase().trim()).includes((cat || "").toLowerCase().trim());
 }
+function isNeutralCat(cat) {
+  return NEUTRAL_CATS.map(c => c.toLowerCase().trim()).includes((cat || "").toLowerCase().trim());
+}
+function isPaiementCat(cat) { return (cat || "").toLowerCase().trim() === "paiement"; }
+function isAvanceCat(cat) { return (cat || "").toLowerCase().trim() === "avance"; }
 
 function nowISO() { return new Date().toISOString(); }
 function todayISO() {
@@ -503,7 +658,7 @@ function formatDateHuman(isoDate) {
   if (!isoDate) return "";
   const d = new Date(isoDate);
   const pad = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
 }
 function formatTS(ts) {
   if (!ts) return "";
@@ -528,6 +683,11 @@ function openDB() {
         txStore.createIndex("category", "category", { unique: false });
       }
       if (!db.objectStoreNames.contains(STORE_LOG)) db.createObjectStore(STORE_LOG, { keyPath: "id", autoIncrement: true });
+      if (!db.objectStoreNames.contains(STORE_ACHATS)) {
+        const achatStore = db.createObjectStore(STORE_ACHATS, { keyPath: "id", autoIncrement: true });
+        achatStore.createIndex("child", "child", { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORE_AVANCES)) db.createObjectStore(STORE_AVANCES, { keyPath: "id", autoIncrement: true });
     };
   });
 }
@@ -626,7 +786,7 @@ function renderMatiereSelect(selectedValue) {
   }
 }
 function lockEntryForm(lock) {
-  document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #matiereSelect, #saveDiskBtn")
+  document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #matiereSelect, #achatSelect, #avanceSelect, #saveDiskBtn")
     .forEach(el => el.disabled = lock);
   if (lock) setStatus("Sélectionne Lily ou Victor pour commencer 👆");
 }
@@ -640,10 +800,12 @@ function closeRulesModal() {
 }
 
 /* ========================= School fields + Dépense hint ========================= */
-function toggleSchoolFields() {
+async function toggleSchoolFields() {
   const cat = $("catSelect").value || "";
   const isEcole = cat.toLowerCase().trim() === "école";
   const isDebit = isDebitCat(cat);
+  const isPaiement = isPaiementCat(cat);
+  const isAvance = isAvanceCat(cat);
 
   // École fields
   if (isEcole) {
@@ -656,6 +818,24 @@ function toggleSchoolFields() {
     $("moyenneInput").value = "";
     if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
   }
+
+  // Mettre à jour les labels des sélecteurs de liaison selon la catégorie
+  const achatLabel = $("achatLabel");
+  const avanceLabel = $("avanceLabel");
+  if (achatLabel) {
+    achatLabel.innerHTML = isPaiement
+      ? `Achat à rembourser <span style="color:#b91c1c;font-size:11px;">obligatoire</span>`
+      : `Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span>`;
+  }
+  if (avanceLabel) {
+    avanceLabel.innerHTML = isAvance
+      ? `Avance à utiliser <span style="color:#b91c1c;font-size:11px;">obligatoire</span>`
+      : `Avance <span class="muted" style="font-size:11px;">(optionnel)</span>`;
+  }
+
+  // Toujours remplir les deux listes
+  await refreshAchatSelect();
+  await refreshAvanceSelect();
 
   // Dépense hint + styling
   const amtHint = $("amtHint");
@@ -710,7 +890,22 @@ function resetEntryForm() {
   $("noteInput").value = "";
   $("moyenneInput").value = "";
   if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
+  if ($("achatSelect")) { $("achatSelect").innerHTML = `<option value="">— Sélectionner un achat —</option>`; }
+  if ($("avanceSelect")) { $("avanceSelect").innerHTML = `<option value="">— Sélectionner une avance —</option>`; }
+  if ($("achatHint")) $("achatHint").textContent = "";
+  if ($("avanceHint")) $("avanceHint").textContent = "";
+  // Hide conditional fields
+  $("schoolFields").classList.remove("visible");
+  $("amtHint").style.display = "none";
+  $("amtInput").classList.remove("depense-mode");
+  $("rulesInfoBtn").style.display = "none";
+  // Reset labels to optional
+  const al = $("achatLabel");
+  const avl = $("avanceLabel");
+  if (al) al.innerHTML = `Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span>`;
+  if (avl) avl.innerHTML = `Avance <span class="muted" style="font-size:11px;">(optionnel)</span>`;
   updateDescCounter();
+  // Re-apply based on currently selected cat (will run async in background if Paiement/Avance)
   toggleSchoolFields();
 }
 
@@ -726,6 +921,26 @@ async function saveOrUpdate() {
   let amt = parseInt($("amtInput").value, 10);
   const desc = $("descInput").value.trim();
   const isEcole = (cat || "").toLowerCase().trim() === "école";
+  const isPaiement = isPaiementCat(cat);
+  const isAvance = isAvanceCat(cat);
+
+  // Lire les liaisons achat / avance (optionnelles sauf pour Paiement et Avance)
+  let achatId = parseInt($("achatSelect").value, 10) || null;
+  let avanceId = parseInt($("avanceSelect").value, 10) || null;
+
+  if (isPaiement && !achatId) {
+    setSaveMsg("Sélectionne un achat à rembourser.", "warn");
+    return setStatus("Un achat doit être sélectionné pour un Paiement.");
+  }
+  if (isAvance && !avanceId) {
+    setSaveMsg("Sélectionne une avance.", "warn");
+    return setStatus("Une avance doit être sélectionnée.");
+  }
+  // Un seul lien à la fois
+  if (achatId && avanceId) {
+    setSaveMsg("Lie à un achat OU une avance, pas les deux.", "warn");
+    return setStatus("Sélectionne soit un achat, soit une avance, pas les deux.");
+  }
 
   let note = null, moyenne = null, matiere = null;
   if (isEcole) {
@@ -747,9 +962,41 @@ async function saveOrUpdate() {
     return setStatus("Tous les champs sont obligatoires.");
   }
 
-  // Auto-négatif pour les catégories débit (ex: Dépense)
+  // Auto-négatif pour les catégories débit (ex: Dépense, Paiement)
   if (isDebitCat(cat) && amt > 0) {
     amt = -amt;
+  }
+  // Pour Avance: on stocke négatif (déduction du pool) mais neutre pour la balance enfant
+  if (isAvance && amt > 0) {
+    amt = -amt;
+  }
+
+  // Vérifier que le paiement ne dépasse pas le solde restant de l'achat
+  if (isPaiement && achatId) {
+    const achat = await dbGet(STORE_ACHATS, achatId);
+    if (achat) {
+      const txAll = await dbGetAll(STORE_TX);
+      const paid = txAll.filter(t => t.achatId === achatId).reduce((s, t) => s + (t.amount || 0), 0);
+      const solde = achat.totalAmount + paid;
+      if (Math.abs(amt) > solde + 0.01) {
+        setSaveMsg(`Paiement dépasse le solde restant (${solde} $)`, "warn");
+        return setStatus(`Le solde restant pour "${achat.desc}" est de ${solde} $.`);
+      }
+    }
+  }
+
+  // Vérifier que la dépense d'avance ne dépasse pas le solde disponible
+  if (isAvance && avanceId) {
+    const avance = await dbGet(STORE_AVANCES, avanceId);
+    if (avance) {
+      const txAll = await dbGetAll(STORE_TX);
+      const spent = txAll.filter(t => t.avanceId === avanceId).reduce((s, t) => s + (t.amount || 0), 0);
+      const solde = avance.initialAmount + spent;
+      if (Math.abs(amt) > solde + 0.01) {
+        setSaveMsg(`Dépense dépasse le solde de l'avance (${solde} $)`, "warn");
+        return setStatus(`Le solde disponible de "${avance.desc}" est de ${solde} $.`);
+      }
+    }
   }
 
   if (isEcole) {
@@ -793,6 +1040,8 @@ async function saveOrUpdate() {
     note: isEcole ? note : null,
     moyenne: isEcole ? moyenne : null,
     matiere: isEcole ? matiere : null,
+    achatId: achatId,
+    avanceId: avanceId,
     createdAt: Date.now(),
     updatedAt: null
   };
@@ -833,6 +1082,8 @@ async function refreshData() {
   await renderTotals();
   await renderLog();
   await updateDbInfo();
+  await renderAchats();
+  await renderAvances();
 }
 async function updateDbInfo() {
   const logCount = (await dbGetAll(STORE_LOG)).length;
@@ -859,7 +1110,8 @@ async function editRecord(id) {
   $("descInput").value = rec.desc;
   $("noteInput").value = (rec.note ?? "");
   $("moyenneInput").value = (rec.moyenne ?? "");
-  toggleSchoolFields();
+  await toggleSchoolFields();
+  // Restore matière
   if (rec.matiere) {
     $("matiereSelect").value = rec.matiere;
     if ($("matiereSelect").value !== rec.matiere) {
@@ -868,6 +1120,28 @@ async function editRecord(id) {
       opt.textContent = rec.matiere + " (valeur existante)";
       $("matiereSelect").appendChild(opt);
       $("matiereSelect").value = rec.matiere;
+    }
+  }
+  // Restore achatId
+  if (rec.achatId && $("achatSelect")) {
+    $("achatSelect").value = rec.achatId;
+    if (!$("achatSelect").value) {
+      const opt = document.createElement("option");
+      opt.value = rec.achatId;
+      opt.textContent = `Achat #${rec.achatId} (archivé)`;
+      $("achatSelect").appendChild(opt);
+      $("achatSelect").value = rec.achatId;
+    }
+  }
+  // Restore avanceId
+  if (rec.avanceId && $("avanceSelect")) {
+    $("avanceSelect").value = rec.avanceId;
+    if (!$("avanceSelect").value) {
+      const opt = document.createElement("option");
+      opt.value = rec.avanceId;
+      opt.textContent = `Avance #${rec.avanceId} (archivée)`;
+      $("avanceSelect").appendChild(opt);
+      $("avanceSelect").value = rec.avanceId;
     }
   }
   updateDescCounter();
@@ -905,10 +1179,13 @@ function renderTable() {
   } else {
     for (const row of filtered) {
       const tr = document.createElement("tr");
+      let descExtra = "";
+      if (row.achatId) descExtra = ` <span class="pill" style="font-size:11px;background:#dbeafe;">💳 Achat #${row.achatId}</span>`;
+      if (row.avanceId) descExtra = ` <span class="pill" style="font-size:11px;background:#fce7f3;">🎁 Avance #${row.avanceId}</span>`;
       tr.innerHTML = `
         <td><span class="pill">${row.child}</span></td>
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
-        <td>${row.desc}</td>
+        <td>${row.desc}${descExtra}</td>
         <td>${formatDateHuman(row.date)}</td>
         <td>${row.category}</td>
         <td style="font-size:13px;">${row.matiere || ""}</td>
@@ -921,7 +1198,7 @@ function renderTable() {
       tbody.appendChild(tr);
     }
   }
-  const filteredSum = filtered.reduce((s, r) => s + r.amount, 0);
+  const filteredSum = filtered.filter(r => !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
   $("rowsCount").textContent = `${filtered.length} transaction(s)`;
   $("filteredTotal").textContent = `${filteredSum} $`;
 }
@@ -930,6 +1207,8 @@ async function renderTotals() {
   for (const kid of CFG.kids) totals[kid] = 0;
   for (const r of ALL_DATA) {
     if (!r || !totals.hasOwnProperty(r.child)) continue;
+    // Les transactions "Avance" ne comptent pas dans la balance de l'enfant
+    if (isNeutralCat(r.category)) continue;
     totals[r.child] += Number.isFinite(r.amount) ? r.amount : 0;
   }
   if ($("kidLily")) $("kidLily").textContent = `Lily-Rose (${totals["Lily-Rose"] ?? 0}$)`;
@@ -952,6 +1231,316 @@ async function renderLog() {
       tbody.appendChild(tr);
     }
   }
+}
+
+/* ========================= Achats à tempérament ========================= */
+async function addAchat() {
+  const child = $("newAchatChild").value;
+  const desc = $("newAchatDesc").value.trim();
+  const totalAmount = parseInt($("newAchatAmt").value, 10);
+  const dueDate = $("newAchatDue").value || null;
+  if (!child || !desc || !Number.isFinite(totalAmount) || totalAmount <= 0) {
+    return setStatus("Tous les champs obligatoires pour créer un achat.");
+  }
+  await dbAdd(STORE_ACHATS, { child, desc, totalAmount, dueDate, createdAt: Date.now(), closed: false });
+  $("newAchatDesc").value = ""; $("newAchatAmt").value = ""; $("newAchatDue").value = "";
+  await renderAchats();
+  setStatus(`Achat "${desc}" créé ✅`);
+}
+
+async function deleteAchat(id) {
+  if (!confirm("Supprimer cet achat ? Les transactions liées ne seront pas supprimées.")) return;
+  await dbDelete(STORE_ACHATS, id);
+  await refreshData();
+  setStatus("Achat supprimé ✅");
+}
+
+async function toggleAchatClosed(id) {
+  const achat = await dbGet(STORE_ACHATS, id);
+  if (!achat) return;
+  achat.closed = !achat.closed;
+  await dbPut(STORE_ACHATS, achat);
+  await renderAchats();
+}
+
+async function renderAchats() {
+  const achats = await dbGetAll(STORE_ACHATS);
+  const allTx = await dbGetAll(STORE_TX);
+  const el = $("achatsList");
+  const totalsEl = $("achatsTotals");
+  if (!el) return;
+
+  achats.sort((a, b) => (a.closed ? 1 : 0) - (b.closed ? 1 : 0) || b.createdAt - a.createdAt);
+
+  // ── Totaux globaux ──
+  let grandTotal = 0, grandPaid = 0;
+  for (const a of achats) {
+    const p = allTx.filter(t => t.achatId === a.id).reduce((s, t) => s + (t.amount || 0), 0);
+    grandTotal += a.totalAmount;
+    grandPaid += -p; // p est négatif, donc -p = montant positif payé
+  }
+  const grandSolde = grandTotal - grandPaid;
+  if (totalsEl) totalsEl.innerHTML = `
+    <div class="section-total-box"><div class="stb-label">Total des achats</div><div class="stb-val">${grandTotal} $</div></div>
+    <div class="section-total-box"><div class="stb-label">Total payé</div><div class="stb-val amt pos">${grandPaid} $</div></div>
+    <div class="section-total-box"><div class="stb-label">Solde restant</div><div class="stb-val ${grandSolde > 0 ? "amt neg" : "amt pos"}">${grandSolde} $</div></div>`;
+
+  if (achats.length === 0) {
+    el.innerHTML = `<p class="muted" style="margin:6px 0;">Aucun achat enregistré.</p>`;
+    return;
+  }
+
+  // Bouton de tri
+  const btn = $("sortAchatsTxBtn");
+  if (btn) btn.textContent = ACHATS_TX_SORT === "desc" ? "Date ↓" : "Date ↑";
+
+  el.innerHTML = achats.map(achat => {
+    let txLinked = allTx.filter(t => t.achatId === achat.id);
+    txLinked.sort((a, b) => ACHATS_TX_SORT === "asc"
+      ? (a.date || "").localeCompare(b.date || "")
+      : (b.date || "").localeCompare(a.date || ""));
+
+    const paid = txLinked.reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = achat.totalAmount + paid;
+    const pct = Math.min(100, Math.round(((achat.totalAmount - solde) / achat.totalAmount) * 100));
+    const isDone = solde <= 0 || achat.closed;
+    const soldeClass = isDone ? "done" : (solde <= achat.totalAmount * 0.25 ? "warn" : "ok");
+    const due = achat.dueDate ? ` · Échéance : <strong>${achat.dueDate}</strong>` : "";
+
+    const txRows = txLinked.length === 0
+      ? `<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:8px 6px;">Aucun paiement enregistré</td></tr>`
+      : txLinked.map(t => `<tr>
+          <td>${formatDateHuman(t.date)}</td>
+          <td>${t.desc}</td>
+          <td class="right"><span class="amt neg">${t.amount} $</span></td>
+        </tr>`).join("");
+
+    const txFoot = txLinked.length > 0 ? `<tfoot><tr style="font-weight:900;background:#f9fafb;">
+      <td colspan="2" style="padding:6px 6px;">Total payé</td>
+      <td class="right" style="padding:6px 6px;"><span class="amt pos">${-paid} $</span></td>
+    </tr></tfoot>` : "";
+
+    return `
+    <div class="achat-item ${isDone ? "done" : ""}">
+      <div style="width:100%;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="flex:1;">
+            <div class="title">${achat.desc} <span class="pill" style="font-size:11px;">${achat.child}</span></div>
+            <div class="meta">Total : <strong>${achat.totalAmount} $</strong>${due}</div>
+            <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+            <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Remboursé" : `Solde : ${solde} $`}</span>
+            <div style="font-size:12px;color:#6b7280;">Payé : ${-paid} $</div>
+            <div class="actionBtns">
+              <button class="actionIconBtn secondary" onclick="toggleAchatClosed(${achat.id})" type="button" title="${achat.closed ? "Rouvrir" : "Clore"}">${achat.closed ? "🔓" : "🔒"}</button>
+              <button class="actionIconBtn danger" onclick="deleteAchat(${achat.id})" type="button" title="Supprimer">🗑️</button>
+            </div>
+          </div>
+        </div>
+        <details class="tx-detail-wrap">
+          <summary>${txLinked.length} paiement${txLinked.length !== 1 ? "s" : ""} · Payé : ${-paid} $ · Solde : ${Math.max(0, solde)} $</summary>
+          <table class="tx-mini-table">
+            <thead><tr><th>Date</th><th>Description</th><th class="right">Montant</th></tr></thead>
+            <tbody>${txRows}</tbody>
+            ${txFoot}
+          </table>
+        </details>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function refreshAchatSelect() {
+  const sel = $("achatSelect");
+  if (!sel) return;
+  const prevVal = sel.value;
+  const achats = await dbGetAll(STORE_ACHATS);
+  const allTx = await dbGetAll(STORE_TX);
+  const cat = $("catSelect") ? $("catSelect").value : "";
+  const isPaiement = isPaiementCat(cat);
+  sel.innerHTML = isPaiement
+    ? `<option value="">— Sélectionner un achat —</option>`
+    : `<option value="">— Aucun —</option>`;
+  for (const achat of achats) {
+    if (achat.closed && !isPaiement) continue; // Pour Paiement, montrer même les clôturés pour rétroactif
+    if (achat.closed) continue;
+    // Pour Paiement: filtrer par enfant actif. Pour lien optionnel: tout montrer.
+    if (isPaiement && ACTIVE_CHILD && achat.child !== ACTIVE_CHILD) continue;
+    const paid = allTx.filter(t => t.achatId === achat.id).reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = achat.totalAmount + paid;
+    if (isPaiement && solde <= 0) continue; // Pour Paiement seulement, masquer si remboursé
+    const opt = document.createElement("option");
+    opt.value = achat.id;
+    opt.textContent = `${achat.desc} (${achat.child}) — Solde : ${Math.max(0,solde)} $`;
+    sel.appendChild(opt);
+  }
+  // Restaurer la valeur précédente si possible
+  if (prevVal) sel.value = prevVal;
+  // Hint dynamique
+  const updateHint = () => {
+    const id = parseInt(sel.value, 10);
+    if (!id) { $("achatHint").textContent = ""; return; }
+    const a = achats.find(x => x.id === id);
+    if (!a) return;
+    const paid = allTx.filter(t => t.achatId === id).reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = a.totalAmount + paid;
+    $("achatHint").textContent = `${a.desc} · Total : ${a.totalAmount} $ · Payé : ${-paid} $ · Solde : ${Math.max(0,solde)} $`;
+  };
+  sel.onchange = updateHint;
+  updateHint();
+}
+
+/* ========================= Avances ========================= */
+async function addAvance() {
+  const desc = $("newAvanceDesc").value.trim();
+  const initialAmount = parseInt($("newAvanceAmt").value, 10);
+  if (!desc || !Number.isFinite(initialAmount) || initialAmount <= 0) {
+    return setStatus("Tous les champs sont obligatoires pour créer une avance.");
+  }
+  await dbAdd(STORE_AVANCES, { desc, initialAmount, createdAt: Date.now(), closed: false });
+  $("newAvanceDesc").value = ""; $("newAvanceAmt").value = "";
+  await renderAvances();
+  setStatus(`Avance "${desc}" créée ✅`);
+}
+
+async function deleteAvance(id) {
+  if (!confirm("Supprimer cette avance ? Les transactions liées ne seront pas supprimées.")) return;
+  await dbDelete(STORE_AVANCES, id);
+  await refreshData();
+  setStatus("Avance supprimée ✅");
+}
+
+async function toggleAvanceClosed(id) {
+  const avance = await dbGet(STORE_AVANCES, id);
+  if (!avance) return;
+  avance.closed = !avance.closed;
+  await dbPut(STORE_AVANCES, avance);
+  await renderAvances();
+}
+
+async function renderAvances() {
+  const avances = await dbGetAll(STORE_AVANCES);
+  const allTx = await dbGetAll(STORE_TX);
+  const el = $("avancesList");
+  const totalsEl = $("avancesTotals");
+  if (!el) return;
+
+  avances.sort((a, b) => (a.closed ? 1 : 0) - (b.closed ? 1 : 0) || b.createdAt - a.createdAt);
+
+  // ── Totaux globaux ──
+  let grandInitial = 0, grandSpent = 0;
+  for (const av of avances) {
+    const sp = allTx.filter(t => t.avanceId === av.id).reduce((s, t) => s + (t.amount || 0), 0);
+    grandInitial += av.initialAmount;
+    grandSpent += -sp;
+  }
+  const grandDispo = grandInitial - grandSpent;
+  if (totalsEl) totalsEl.innerHTML = `
+    <div class="section-total-box"><div class="stb-label">Total des avances</div><div class="stb-val">${grandInitial} $</div></div>
+    <div class="section-total-box"><div class="stb-label">Total utilisé</div><div class="stb-val amt neg">${grandSpent} $</div></div>
+    <div class="section-total-box"><div class="stb-label">Disponible global</div><div class="stb-val ${grandDispo > 0 ? "amt pos" : "amt neg"}">${grandDispo} $</div></div>`;
+
+  if (avances.length === 0) {
+    el.innerHTML = `<p class="muted" style="margin:6px 0;">Aucune avance enregistrée.</p>`;
+    return;
+  }
+
+  // Bouton de tri
+  const btn = $("sortAvancesTxBtn");
+  if (btn) btn.textContent = AVANCES_TX_SORT === "desc" ? "Date ↓" : "Date ↑";
+
+  el.innerHTML = avances.map(avance => {
+    let txLinked = allTx.filter(t => t.avanceId === avance.id);
+    txLinked.sort((a, b) => AVANCES_TX_SORT === "asc"
+      ? (a.date || "").localeCompare(b.date || "")
+      : (b.date || "").localeCompare(a.date || ""));
+
+    const spent = txLinked.reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = avance.initialAmount + spent;
+    const pct = Math.min(100, Math.round(((-spent) / avance.initialAmount) * 100));
+    const isDone = solde <= 0 || avance.closed;
+    const soldeClass = isDone ? "done" : (solde <= avance.initialAmount * 0.25 ? "warn" : "ok");
+
+    const txRows = txLinked.length === 0
+      ? `<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:8px 6px;">Aucune dépense enregistrée</td></tr>`
+      : txLinked.map(t => `<tr>
+          <td>${formatDateHuman(t.date)}</td>
+          <td>${t.desc}</td>
+          <td class="right"><span class="amt neg">${t.amount} $</span></td>
+        </tr>`).join("");
+
+    const txFoot = txLinked.length > 0 ? `<tfoot><tr style="font-weight:900;background:#f9fafb;">
+      <td colspan="2" style="padding:6px 6px;">Total utilisé</td>
+      <td class="right" style="padding:6px 6px;"><span class="amt neg">${spent} $</span></td>
+    </tr></tfoot>` : "";
+
+    return `
+    <div class="avance-item ${isDone ? "done" : ""}">
+      <div style="width:100%;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+          <div style="flex:1;">
+            <div class="title">${avance.desc}</div>
+            <div class="meta">Initial : <strong>${avance.initialAmount} $</strong> · Utilisé : ${-spent} $</div>
+            <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+            <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Épuisée" : `Dispo : ${solde} $`}</span>
+            <div style="font-size:12px;color:#6b7280;">Utilisé : ${-spent} $</div>
+            <div class="actionBtns">
+              <button class="actionIconBtn secondary" onclick="toggleAvanceClosed(${avance.id})" type="button" title="${avance.closed ? "Rouvrir" : "Fermer"}">${avance.closed ? "🔓" : "🔒"}</button>
+              <button class="actionIconBtn danger" onclick="deleteAvance(${avance.id})" type="button" title="Supprimer">🗑️</button>
+            </div>
+          </div>
+        </div>
+        <details class="tx-detail-wrap">
+          <summary>${txLinked.length} dépense${txLinked.length !== 1 ? "s" : ""} · Utilisé : ${-spent} $ · Disponible : ${Math.max(0, solde)} $</summary>
+          <table class="tx-mini-table">
+            <thead><tr><th>Date</th><th>Description</th><th class="right">Montant</th></tr></thead>
+            <tbody>${txRows}</tbody>
+            ${txFoot}
+          </table>
+        </details>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function refreshAvanceSelect() {
+  const sel = $("avanceSelect");
+  if (!sel) return;
+  const prevVal = sel.value;
+  const avances = await dbGetAll(STORE_AVANCES);
+  const allTx = await dbGetAll(STORE_TX);
+  const cat = $("catSelect") ? $("catSelect").value : "";
+  const isAvance = isAvanceCat(cat);
+  sel.innerHTML = isAvance
+    ? `<option value="">— Sélectionner une avance —</option>`
+    : `<option value="">— Aucune —</option>`;
+  for (const avance of avances) {
+    if (avance.closed) continue;
+    const spent = allTx.filter(t => t.avanceId === avance.id).reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = avance.initialAmount + spent;
+    if (isAvance && solde <= 0) continue; // Pour Avance obligatoire: masquer si épuisée
+    const opt = document.createElement("option");
+    opt.value = avance.id;
+    opt.textContent = `${avance.desc} — Dispo : ${Math.max(0,solde)} $`;
+    sel.appendChild(opt);
+  }
+  // Restaurer la valeur précédente si possible
+  if (prevVal) sel.value = prevVal;
+  // Hint dynamique
+  const updateHint = () => {
+    const id = parseInt(sel.value, 10);
+    if (!id) { $("avanceHint").textContent = ""; return; }
+    const avance = avances.find(a => a.id === id);
+    if (!avance) return;
+    const spent = allTx.filter(t => t.avanceId === id).reduce((s, t) => s + (t.amount || 0), 0);
+    const solde = avance.initialAmount + spent;
+    $("avanceHint").textContent = `"${avance.desc}" · Initial : ${avance.initialAmount} $ · Utilisé : ${-spent} $ · Disponible : ${Math.max(0,solde)} $`;
+  };
+  sel.onchange = updateHint;
+  updateHint();
 }
 
 /* ========================= Settings ========================= */
@@ -1135,7 +1724,7 @@ async function initUIAfterConfig() {
   setActiveChild(null);
   resetEntryForm();
   lockEntryForm(true);
-  toggleSchoolFields();
+  await toggleSchoolFields();
 }
 
 /* ========================= PWA Install Prompt ========================= */
@@ -1222,6 +1811,20 @@ async function init() {
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
+
+  // Achats & Avances
+  $("addAchatBtn").addEventListener("click", addAchat);
+  $("addAvanceBtn").addEventListener("click", addAvance);
+
+  // Tri des transactions dans les sections Achats / Avances
+  $("sortAchatsTxBtn").addEventListener("click", () => {
+    ACHATS_TX_SORT = ACHATS_TX_SORT === "desc" ? "asc" : "desc";
+    renderAchats();
+  });
+  $("sortAvancesTxBtn").addEventListener("click", () => {
+    AVANCES_TX_SORT = AVANCES_TX_SORT === "desc" ? "asc" : "desc";
+    renderAvances();
+  });
 
   // Rules modal
   $("rulesInfoBtn").addEventListener("click", openRulesModal);
