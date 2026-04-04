@@ -393,7 +393,15 @@
           <div class="muted">
             <span id="rowsCount"></span> • Total filtre: <span id="filteredTotal" style="font-weight:1000;"></span>
           </div>
-          <button id="toggleFiltersBtn" class="secondary smallBtn iconOnly" type="button" title="Afficher/masquer les filtres" aria-label="Filtres"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <select id="txLimitSelect" class="secondary" style="width:auto;padding:8px 10px;font-size:13px;border-radius:10px;border:1px solid #d1d5db;">
+              <option value="25">25 derniers</option>
+              <option value="50">50 derniers</option>
+              <option value="100">100 derniers</option>
+              <option value="0">Tous</option>
+            </select>
+            <button id="toggleFiltersBtn" class="secondary smallBtn iconOnly" type="button" title="Afficher/masquer les filtres" aria-label="Filtres"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7L3 5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+          </div>
         </div>
 
         <div id="filtersWrap" class="filtersWrap">
@@ -649,6 +657,7 @@ let ALL_DATA = [];
 let ACTIVE_CHILD = null;
 let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
 let SORT = { col: "date", dir: "desc" };
+let TX_LIMIT = 25;         // 0 = tout afficher
 let ACHATS_TX_SORT = "desc";   // tri des transactions dans la section Achats
 let AVANCES_TX_SORT = "desc";  // tri des transactions dans la section Avances
 let EDIT_MODE = false;
@@ -1201,12 +1210,15 @@ function sortData(data) {
 function renderTable() {
   const filtered = applyFilters(ALL_DATA);
   sortData(filtered);
+  // Appliquer la limite d'affichage
+  const totalFiltered = filtered.length;
+  const displayed = TX_LIMIT > 0 ? filtered.slice(0, TX_LIMIT) : filtered;
   const tbody = $("txBody");
   tbody.innerHTML = "";
-  if (filtered.length === 0) {
+  if (displayed.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">Aucune transaction</td></tr>`;
   } else {
-    for (const row of filtered) {
+    for (const row of displayed) {
       const tr = document.createElement("tr");
       let descExtra = "";
       if (row.achatId) descExtra = ` <span class="pill" style="font-size:11px;background:#dbeafe;">💳 Achat #${row.achatId}</span>`;
@@ -1227,8 +1239,9 @@ function renderTable() {
       tbody.appendChild(tr);
     }
   }
-  const filteredSum = filtered.filter(r => !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
-  $("rowsCount").textContent = `${filtered.length} transaction(s)`;
+  const filteredSum = displayed.filter(r => !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
+  const limitNote = TX_LIMIT > 0 && totalFiltered > TX_LIMIT ? ` (${displayed.length} / ${totalFiltered})` : ` (${totalFiltered})`;
+  $("rowsCount").textContent = `${totalFiltered} transaction(s)${TX_LIMIT > 0 && totalFiltered > TX_LIMIT ? " — " + displayed.length + " affichée(s)" : ""}`;
   $("filteredTotal").textContent = `${filteredSum} $`;
 }
 async function renderTotals() {
@@ -1381,7 +1394,7 @@ async function renderAchats() {
             <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Remboursé" : `Solde : ${solde} $`}</span>
             <div style="font-size:12px;color:#6b7280;">Payé : ${-paid} $</div>
             <div class="actionBtns">
-              <button class="actionIconBtn secondary" onclick="toggleAchatClosed(${achat.id})" type="button" title="${achat.closed ? "Rouvrir" : "Clore"}">${achat.closed ? "🔓" : "🔒"}</button>
+              <button class="actionIconBtn secondary" onclick="toggleAchatClosed(${achat.id})" type="button" title="${achat.closed ? \"Réactiver\" : \"Archiver\"}">${achat.closed ? \"♻️\" : \"📦\"}</button>
               <button class="actionIconBtn danger" onclick="deleteAchat(${achat.id})" type="button" title="Supprimer">🗑️</button>
             </div>
           </div>
@@ -1555,7 +1568,7 @@ async function renderAvances() {
             <span class="badge-solde ${soldeClass}">${solde <= 0 ? "✅ Épuisée" : `Dispo : ${solde} $`}</span>
             <div style="font-size:12px;color:#6b7280;">Utilisé : ${-spent} $</div>
             <div class="actionBtns">
-              <button class="actionIconBtn secondary" onclick="toggleAvanceClosed(${avance.id})" type="button" title="${avance.closed ? "Rouvrir" : "Fermer"}">${avance.closed ? "🔓" : "🔒"}</button>
+              <button class="actionIconBtn secondary" onclick="toggleAvanceClosed(${avance.id})" type="button" title="${avance.closed ? \"Réactiver\" : \"Archiver\"}">${avance.closed ? \"♻️\" : \"📦\"}</button>
               <button class="actionIconBtn danger" onclick="deleteAvance(${avance.id})" type="button" title="Supprimer">🗑️</button>
             </div>
           </div>
@@ -1935,6 +1948,10 @@ async function init() {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRulesModal(); });
 
   if ($("toggleFiltersBtn")) $("toggleFiltersBtn").addEventListener("click", () => $("filtersWrap").classList.toggle("show"));
+  if ($("txLimitSelect")) $("txLimitSelect").addEventListener("change", () => {
+    TX_LIMIT = parseInt($("txLimitSelect").value, 10);
+    renderTable();
+  });
   $("applyFilterBtn").addEventListener("click", () => {
     FILTER.children = getSelectedValues($("filterChild"));
     FILTER.cats = getSelectedValues($("filterCat"));
