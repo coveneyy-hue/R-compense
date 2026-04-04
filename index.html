@@ -1735,20 +1735,22 @@ async function importJSON(file) {
       await dbAdd(STORE_LOG, { ts: Number(l.ts || Date.now()), action: String(l.action || "IMPORT"), amount: Math.round(Number(l.amount || 0)), details: String(l.details || "") });
     }
   }
-  // Restaurer achats (version 2+)
+  // Restaurer achats (version 2+) — dbPut pour préserver les IDs originaux
   if (Array.isArray(payload.achats)) {
     for (const a of payload.achats) {
-      await dbAdd(STORE_ACHATS, {
+      await dbPut(STORE_ACHATS, {
+        id: Number(a.id),
         child: String(a.child || ""), desc: String(a.desc || ""),
         totalAmount: Number(a.totalAmount || 0), dueDate: a.dueDate || null,
         createdAt: Number(a.createdAt || Date.now()), closed: !!a.closed
       });
     }
   }
-  // Restaurer avances (version 2+)
+  // Restaurer avances (version 2+) — dbPut pour préserver les IDs originaux
   if (Array.isArray(payload.avances)) {
     for (const av of payload.avances) {
-      await dbAdd(STORE_AVANCES, {
+      await dbPut(STORE_AVANCES, {
+        id: Number(av.id),
         desc: String(av.desc || ""), initialAmount: Number(av.initialAmount || 0),
         createdAt: Number(av.createdAt || Date.now()), closed: !!av.closed
       });
