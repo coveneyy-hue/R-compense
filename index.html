@@ -157,6 +157,11 @@
     #rulesModalBox td:last-child { text-align:right; font-weight:700; color:#065f46; }
     #rulesModalClose { margin-top:16px; width:100%; }
 
+    /* Field-level validation errors */
+    .field-error { font-size: 12px; color: #b91c1c; font-weight: 700; min-height: 16px; margin-top: 4px; display: none; }
+    .field-error.show { display: block; }
+    input.input-error, select.input-error { border-color: #fca5a5 !important; background: #fff5f5 !important; }
+
     /* Dépense amount field highlight */
     #amtInput.depense-mode { border-color: #fca5a5; background: #fff5f5 !important; }
 
@@ -308,6 +313,7 @@
         <div>
           <label>Date <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="dateInput" type="date" />
+          <div id="dateErr" class="field-error"></div>
         </div>
         <div>
           <label>Catégorie <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
@@ -320,15 +326,18 @@
         <div style="margin-top:10px;">
           <label>Matière <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <select id="matiereSelect"></select>
+          <div id="matiereErr" class="field-error"></div>
         </div>
         <div class="row" style="margin-top:10px;">
           <div>
             <label>Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <input id="noteInput" type="number" step="1" min="0" max="100" placeholder="0" />
+            <input id="noteInput" type="number" step="1" min="0" max="100" />
+            <div id="noteErr" class="field-error"></div>
           </div>
           <div>
             <label>Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <input id="moyenneInput" type="number" step="1" min="0" max="100" placeholder="0" />
+            <input id="moyenneInput" type="number" step="1" min="0" max="100" />
+            <div id="moyenneErr" class="field-error"></div>
           </div>
         </div>
       </div>
@@ -336,12 +345,14 @@
       <div class="row" style="margin-top:10px;">
         <div>
           <label>Montant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-          <input id="amtInput" type="number" step="1" inputmode="numeric" placeholder="0" />
+          <input id="amtInput" type="number" step="1" inputmode="numeric" />
           <div id="amtHint" class="hint" style="display:none;">⬇️ Dépense — sera soustrait automatiquement (signe − facultatif)</div>
+          <div id="amtErr" class="field-error"></div>
         </div>
         <div>
           <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <input id="descInput" type="text" maxlength="100" />
+          <div id="descErr" class="field-error"></div>
         </div>
       </div>
 
@@ -352,11 +363,13 @@
           <div>
             <label id="achatLabel">Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span></label>
             <select id="achatSelect"><option value="">— Aucun —</option></select>
+            <div id="achatErr" class="field-error"></div>
             <div id="achatHint" class="hint" style="margin-top:4px;"></div>
           </div>
           <div>
             <label id="avanceLabel">Avance <span class="muted" style="font-size:11px;">(optionnel)</span></label>
             <select id="avanceSelect"><option value="">— Aucune —</option></select>
+            <div id="avanceErr" class="field-error"></div>
             <div id="avanceHint" class="hint" style="margin-top:4px;"></div>
           </div>
         </div>
@@ -458,11 +471,11 @@
           <div class="row" style="margin-top:8px;">
             <div>
               <label>Description</label>
-              <input id="newAchatDesc" type="text" placeholder="ex: iPhone 16" maxlength="80" />
+              <input id="newAchatDesc" type="text" maxlength="80" />
             </div>
             <div>
               <label>Montant total ($)</label>
-              <input id="newAchatAmt" type="number" step="1" min="1" placeholder="1900" />
+              <input id="newAchatAmt" type="number" step="1" min="1" />
             </div>
           </div>
           <div style="margin-top:8px;">
@@ -498,11 +511,11 @@
           <div class="row">
             <div>
               <label>Description</label>
-              <input id="newAvanceDesc" type="text" placeholder="ex: Anniversaire Victor" maxlength="80" />
+              <input id="newAvanceDesc" type="text" maxlength="80" />
             </div>
             <div>
               <label>Montant ($)</label>
-              <input id="newAvanceAmt" type="number" step="1" min="1" placeholder="500" />
+              <input id="newAvanceAmt" type="number" step="1" min="1" />
             </div>
           </div>
           <div class="actions" style="margin-top:10px;">
@@ -905,7 +918,12 @@ function resetEntryForm() {
   if (al) al.innerHTML = `Achat à tempérament <span class="muted" style="font-size:11px;">(optionnel)</span>`;
   if (avl) avl.innerHTML = `Avance <span class="muted" style="font-size:11px;">(optionnel)</span>`;
   updateDescCounter();
-  // Re-apply based on currently selected cat (will run async in background if Paiement/Avance)
+  // Clear all field-level errors
+  ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","achatErr","avanceErr"]
+    .forEach(id => { const e = $(id); if (e) { e.textContent = ""; e.classList.remove("show"); } });
+  ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","achatSelect","avanceSelect"]
+    .forEach(id => { const e = $(id); if (e) e.classList.remove("input-error"); });
+  // Re-apply based on currently selected cat
   toggleSchoolFields();
 }
 
@@ -928,38 +946,45 @@ async function saveOrUpdate() {
   let achatId = parseInt($("achatSelect").value, 10) || null;
   let avanceId = parseInt($("avanceSelect").value, 10) || null;
 
-  if (isPaiement && !achatId) {
-    setSaveMsg("Sélectionne un achat à rembourser.", "warn");
-    return setStatus("Un achat doit être sélectionné pour un Paiement.");
-  }
-  if (isAvance && !avanceId) {
-    setSaveMsg("Sélectionne une avance.", "warn");
-    return setStatus("Une avance doit être sélectionnée.");
-  }
-  // Un seul lien à la fois
-  if (achatId && avanceId) {
-    setSaveMsg("Lie à un achat OU une avance, pas les deux.", "warn");
-    return setStatus("Sélectionne soit un achat, soit une avance, pas les deux.");
-  }
-
   let note = null, moyenne = null, matiere = null;
   if (isEcole) {
     note = parseFloat($("noteInput").value);
     moyenne = parseFloat($("moyenneInput").value);
     matiere = $("matiereSelect").value;
-    if (!Number.isFinite(note) || !Number.isFinite(moyenne)) {
-      setSaveMsg("Veuillez compléter les infos manquantes avant d'enregistrer", "warn");
-      return setStatus("Pour École, la note et la moyenne sont obligatoires.");
-    }
-    if (!matiere) {
-      setSaveMsg("Veuillez sélectionner une matière avant d'enregistrer", "warn");
-      return setStatus("Pour École, la matière est obligatoire.");
-    }
   }
 
-  if (!dateVal || !cat || !Number.isFinite(amt) || !desc) {
-    setSaveMsg("Veuillez compléter les infos manquantes avant d'enregistrer", "warn");
-    return setStatus("Tous les champs sont obligatoires.");
+  // ── Validation avec erreurs par champ ──
+  const fieldErr = (id, msg) => {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = msg || "Champ requis";
+    el.classList.toggle("show", !!msg);
+  };
+  const fieldInputErr = (id, hasErr) => {
+    const el = $(id);
+    if (el) el.classList.toggle("input-error", hasErr);
+  };
+  const clearAllErrors = () => {
+    ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","achatErr","avanceErr"]
+      .forEach(id => fieldErr(id, ""));
+    ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","achatSelect","avanceSelect"]
+      .forEach(id => fieldInputErr(id, false));
+  };
+  clearAllErrors();
+
+  let hasError = false;
+  if (!dateVal)                          { fieldErr("dateErr"); fieldInputErr("dateInput", true); hasError = true; }
+  if (!Number.isFinite(amt))             { fieldErr("amtErr");  fieldInputErr("amtInput",  true); hasError = true; }
+  if (!desc)                             { fieldErr("descErr"); fieldInputErr("descInput",  true); hasError = true; }
+  if (isEcole && !matiere)               { fieldErr("matiereErr"); fieldInputErr("matiereSelect", true); hasError = true; }
+  if (isEcole && !Number.isFinite(note)) { fieldErr("noteErr");    fieldInputErr("noteInput",      true); hasError = true; }
+  if (isEcole && !Number.isFinite(moyenne)) { fieldErr("moyenneErr"); fieldInputErr("moyenneInput", true); hasError = true; }
+  if (isPaiement && !achatId)            { fieldErr("achatErr", "Champ requis — sélectionne un achat"); fieldInputErr("achatSelect", true); hasError = true; }
+  if (isAvance && !avanceId)             { fieldErr("avanceErr", "Champ requis — sélectionne une avance"); fieldInputErr("avanceSelect", true); hasError = true; }
+  if (achatId && avanceId)               { fieldErr("achatErr", "Choisir achat OU avance, pas les deux"); fieldErr("avanceErr", "Choisir achat OU avance, pas les deux"); hasError = true; }
+  if (hasError) {
+    setSaveMsg("Certains champs sont manquants", "warn");
+    return;
   }
 
   // Auto-négatif pour les catégories débit (ex: Dépense, Paiement)
