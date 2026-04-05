@@ -515,7 +515,14 @@
         <!-- Formulaire création d'une avance -->
         <div class="mini-form">
           <div style="font-weight:900; font-size:13px; margin-bottom:8px;">Nouvelle avance</div>
-          <div class="row">
+          <div>
+            <label>Enfant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
+            <select id="newAvanceChild">
+              <option value="Lily-Rose">Lily-Rose</option>
+              <option value="Victor">Victor</option>
+            </select>
+          </div>
+          <div class="row" style="margin-top:8px;">
             <div>
               <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
               <input id="newAvanceDesc" type="text" maxlength="80" />
@@ -895,6 +902,8 @@ function setActiveChild(childName) {
   CFG.defaults.kid = childName;
   saveConfig(CFG);
   resetEntryForm();
+  renderAchats();
+  renderAvances();
 }
 
 function resetEntryForm() {
@@ -1303,11 +1312,14 @@ async function deleteArchivedAchats() {
 }
 
 async function renderAchats() {
-  const achats = await dbGetAll(STORE_ACHATS);
+  let achats = await dbGetAll(STORE_ACHATS);
   const allTx = await dbGetAll(STORE_TX);
   const el = $("achatsList");
   const totalsEl = $("achatsTotals");
   if (!el) return;
+
+  // Filtrer par enfant actif
+  if (ACTIVE_CHILD) achats = achats.filter(a => a.child === ACTIVE_CHILD);
 
   achats.sort((a, b) => (a.closed ? 1 : 0) - (b.closed ? 1 : 0) || b.createdAt - a.createdAt);
 
@@ -1442,12 +1454,13 @@ async function refreshAchatSelect() {
 
 /* ========================= Avances ========================= */
 async function addAvance() {
+  const child = $("newAvanceChild").value;
   const desc = $("newAvanceDesc").value.trim();
   const initialAmount = parseInt($("newAvanceAmt").value, 10);
-  if (!desc || !Number.isFinite(initialAmount) || initialAmount <= 0) {
-    return setStatus("Tous les champs sont obligatoires pour créer une avance.");
+  if (!child || !desc || !Number.isFinite(initialAmount) || initialAmount <= 0) {
+    return setStatus("Tous les champs obligatoires pour créer une avance.");
   }
-  await dbAdd(STORE_AVANCES, { desc, initialAmount, createdAt: Date.now(), closed: false });
+  await dbAdd(STORE_AVANCES, { child, desc, initialAmount, createdAt: Date.now(), closed: false });
   $("newAvanceDesc").value = ""; $("newAvanceAmt").value = "";
   await renderAvances();
   setStatus(`Avance "${desc}" créée ✅`);
@@ -1479,11 +1492,14 @@ async function deleteArchivedAvances() {
 }
 
 async function renderAvances() {
-  const avances = await dbGetAll(STORE_AVANCES);
+  let avances = await dbGetAll(STORE_AVANCES);
   const allTx = await dbGetAll(STORE_TX);
   const el = $("avancesList");
   const totalsEl = $("avancesTotals");
   if (!el) return;
+
+  // Filtrer par enfant actif
+  if (ACTIVE_CHILD) avances = avances.filter(a => a.child === ACTIVE_CHILD);
 
   avances.sort((a, b) => (a.closed ? 1 : 0) - (b.closed ? 1 : 0) || b.createdAt - a.createdAt);
 
@@ -1548,7 +1564,7 @@ async function renderAvances() {
       <div style="width:100%;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
-            <div class="title">${avance.desc}</div>
+            <div class="title">${avance.desc} ${avance.child ? `<span class="pill" style="font-size:11px;">${avance.child}</span>` : ""}</div>
             <div class="meta">Initial : <strong>${avance.initialAmount} $</strong> · Utilisé : ${spent} $</div>
             <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
           </div>
@@ -1587,6 +1603,7 @@ async function refreshAvanceSelect() {
     : `<option value="">— Aucune —</option>`;
   for (const avance of avances) {
     if (avance.closed) continue;
+    if (isAvance && ACTIVE_CHILD && avance.child && avance.child !== ACTIVE_CHILD) continue;
     const spent = allTx.filter(t => t.avanceId === avance.id).reduce((s, t) => s + (t.amount || 0), 0);
     const solde = avance.initialAmount - spent; // tx positives
     if (isAvance && solde <= 0) continue; // Pour Avance obligatoire: masquer si épuisée
@@ -1792,6 +1809,7 @@ async function importJSON(file) {
     for (const av of payload.avances) {
       await dbPut(STORE_AVANCES, {
         id: Number(av.id),
+        child: String(av.child || ""),
         desc: String(av.desc || ""), initialAmount: Number(av.initialAmount || 0),
         createdAt: Number(av.createdAt || Date.now()), closed: !!av.closed
       });
