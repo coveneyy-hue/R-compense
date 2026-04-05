@@ -64,11 +64,16 @@
     .kidBtn.active.lily { background: #f9cfe3; color:#111827; }
     .kidBtn.active.victor { background: #cfe2ff; color:#111827; }
     #entryCard { transition: background-color .12s ease; }
+    #achatsCard, #avancesCard { transition: background-color .12s ease; }
     #entryCard.saisie-lily { background: var(--lily-bg); }
     #entryCard.saisie-victor { background: var(--victor-bg); }
     #entryCard input, #entryCard select, #entryCard textarea { transition: background-color .12s ease; }
     #entryCard.saisie-lily input, #entryCard.saisie-lily select, #entryCard.saisie-lily textarea { background: #fff7fb; }
     #entryCard.saisie-victor input, #entryCard.saisie-victor select, #entryCard.saisie-victor textarea { background: #f6f9ff; }
+    #achatsCard.saisie-lily, #avancesCard.saisie-lily { background: var(--lily-bg); }
+    #achatsCard.saisie-victor, #avancesCard.saisie-victor { background: var(--victor-bg); }
+    #achatsCard.saisie-lily input, #achatsCard.saisie-lily select, #avancesCard.saisie-lily input, #avancesCard.saisie-lily select { background: #fff7fb; }
+    #achatsCard.saisie-victor input, #achatsCard.saisie-victor select, #avancesCard.saisie-victor input, #avancesCard.saisie-victor select { background: #f6f9ff; }
     .school-fields { display: none; margin-top: 10px; }
     .school-fields.visible { display: block; }
     .iconBtn { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
@@ -450,7 +455,7 @@
       </details>
     </section>
 
-    <section class="card">
+    <section class="card" id="achatsCard">
       <details id="achatsDetails" open>
         <summary>💳 Achats à tempérament</summary>
 
@@ -467,14 +472,7 @@
         <!-- Formulaire création d'un achat -->
         <div class="mini-form">
           <div style="font-weight:900; font-size:13px; margin-bottom:8px;">Nouvel achat</div>
-          <div>
-            <label>Enfant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <select id="newAchatChild">
-              <option value="Lily-Rose">Lily-Rose</option>
-              <option value="Victor">Victor</option>
-            </select>
-          </div>
-          <div class="row" style="margin-top:8px;">
+          <div class="row">
             <div>
               <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
               <input id="newAchatDesc" type="text" maxlength="80" />
@@ -498,7 +496,7 @@
       </details>
     </section>
 
-    <section class="card">
+    <section class="card" id="avancesCard">
       <details id="avancesDetails" open>
         <summary>🎁 Avances disponibles</summary>
 
@@ -515,14 +513,7 @@
         <!-- Formulaire création d'une avance -->
         <div class="mini-form">
           <div style="font-weight:900; font-size:13px; margin-bottom:8px;">Nouvelle avance</div>
-          <div>
-            <label>Enfant <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <select id="newAvanceChild">
-              <option value="Lily-Rose">Lily-Rose</option>
-              <option value="Victor">Victor</option>
-            </select>
-          </div>
-          <div class="row" style="margin-top:8px;">
+          <div class="row">
             <div>
               <label>Description <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
               <input id="newAvanceDesc" type="text" maxlength="80" />
@@ -821,6 +812,11 @@ function lockEntryForm(lock) {
   if (lock) setStatus("Sélectionne Lily ou Victor pour commencer 👆");
 }
 
+function lockAchatsAvances(lock) {
+  document.querySelectorAll("#newAchatDesc, #newAchatAmt, #newAchatDue, #addAchatBtn, #newAvanceDesc, #newAvanceAmt, #addAvanceBtn")
+    .forEach(el => el.disabled = lock);
+}
+
 /* ========================= Rules modal ========================= */
 function openRulesModal() {
   $("rulesModal").classList.add("open");
@@ -892,13 +888,27 @@ function calculateSchoolAmount() {
 function setActiveChild(childName) {
   ACTIVE_CHILD = childName;
   const entryCard = $("entryCard");
+  const achatsCard = $("achatsCard");
+  const avancesCard = $("avancesCard");
   $("kidLily").classList.remove("active");
   $("kidVictor").classList.remove("active");
   if (entryCard) entryCard.classList.remove("saisie-lily", "saisie-victor");
-  if (!childName) { lockEntryForm(true); return; }
+  if (achatsCard) achatsCard.classList.remove("saisie-lily", "saisie-victor");
+  if (avancesCard) avancesCard.classList.remove("saisie-lily", "saisie-victor");
+  if (!childName) { lockEntryForm(true); lockAchatsAvances(true); return; }
   lockEntryForm(false);
-  if (childName === "Lily-Rose") { $("kidLily").classList.add("active"); if (entryCard) entryCard.classList.add("saisie-lily"); }
-  else { $("kidVictor").classList.add("active"); if (entryCard) entryCard.classList.add("saisie-victor"); }
+  lockAchatsAvances(false);
+  if (childName === "Lily-Rose") {
+    $("kidLily").classList.add("active");
+    if (entryCard) entryCard.classList.add("saisie-lily");
+    if (achatsCard) achatsCard.classList.add("saisie-lily");
+    if (avancesCard) avancesCard.classList.add("saisie-lily");
+  } else {
+    $("kidVictor").classList.add("active");
+    if (entryCard) entryCard.classList.add("saisie-victor");
+    if (achatsCard) achatsCard.classList.add("saisie-victor");
+    if (avancesCard) avancesCard.classList.add("saisie-victor");
+  }
   CFG.defaults.kid = childName;
   saveConfig(CFG);
   resetEntryForm();
@@ -1273,11 +1283,12 @@ async function renderLog() {
 
 /* ========================= Achats à tempérament ========================= */
 async function addAchat() {
-  const child = $("newAchatChild").value;
+  if (!ACTIVE_CHILD) return setStatus("Sélectionne un enfant d'abord 👆");
+  const child = ACTIVE_CHILD;
   const desc = $("newAchatDesc").value.trim();
   const totalAmount = parseInt($("newAchatAmt").value, 10);
   const dueDate = $("newAchatDue").value || null;
-  if (!child || !desc || !Number.isFinite(totalAmount) || totalAmount <= 0) {
+  if (!desc || !Number.isFinite(totalAmount) || totalAmount <= 0) {
     return setStatus("Tous les champs obligatoires pour créer un achat.");
   }
   await dbAdd(STORE_ACHATS, { child, desc, totalAmount, dueDate, createdAt: Date.now(), closed: false });
@@ -1454,10 +1465,11 @@ async function refreshAchatSelect() {
 
 /* ========================= Avances ========================= */
 async function addAvance() {
-  const child = $("newAvanceChild").value;
+  if (!ACTIVE_CHILD) return setStatus("Sélectionne un enfant d'abord 👆");
+  const child = ACTIVE_CHILD;
   const desc = $("newAvanceDesc").value.trim();
   const initialAmount = parseInt($("newAvanceAmt").value, 10);
-  if (!child || !desc || !Number.isFinite(initialAmount) || initialAmount <= 0) {
+  if (!desc || !Number.isFinite(initialAmount) || initialAmount <= 0) {
     return setStatus("Tous les champs obligatoires pour créer une avance.");
   }
   await dbAdd(STORE_AVANCES, { child, desc, initialAmount, createdAt: Date.now(), closed: false });
