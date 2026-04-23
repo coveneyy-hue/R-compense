@@ -328,19 +328,19 @@
 
       <!-- Champs spécifiques pour la catégorie "école" -->
       <div id="schoolFields" class="school-fields">
-        <div style="margin-top:10px;">
+        <div id="matiereFieldWrap" style="margin-top:10px;">
           <label>Matière <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
           <select id="matiereSelect"></select>
           <div id="matiereErr" class="field-error"></div>
         </div>
         <div class="row" style="margin-top:10px;">
           <div>
-            <label>Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
+            <label id="noteLabel">Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
             <input id="noteInput" type="number" step="1" min="0" max="100" />
             <div id="noteErr" class="field-error"></div>
           </div>
           <div>
-            <label>Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
+            <label id="moyenneLabel">Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
             <input id="moyenneInput" type="number" step="1" min="0" max="100" />
             <div id="moyenneErr" class="field-error"></div>
           </div>
@@ -382,8 +382,9 @@
       </div>
       <div style="margin-top:8px;" class="muted" id="backupInfoWrap">
         <span id="backupInfo"></span>
-        <button id="rulesInfoBtn" class="infoIconBtn" type="button" title="Voir les règles de récompense École" aria-label="Règles École" style="display:none;">i</button>
+        <button id="rulesInfoBtn" class="infoIconBtn" type="button" title="Voir les règles de récompense École et Bulletin" aria-label="Règles École et Bulletin" style="display:none;">i</button>
       </div>
+      <div id="bulletinReminder" class="hint" style="display:none; margin-top:8px; font-weight:700; color:#92400e;">Veiller ajouter 50$ par matière avec 100%</div>
       <p class="muted" id="statusMsg" style="margin:10px 0 0;"></p>
     </section>
 
@@ -626,12 +627,12 @@
 
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
-const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Bulletin","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
 const DEBIT_CATS = ["Dépense","Paiement"]; // Catégories dont le montant est automatiquement négatif
 const NEUTRAL_CATS = []; // Avance est désormais positif pour la balance de l'enfant
 const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
 // Catégories obligatoires injectées si absentes de la config
-const REQUIRED_CATS = ["Paiement", "Avance"];
+const REQUIRED_CATS = ["Paiement", "Avance", "Bulletin"];
 const DB_NAME = "BudgetEnfantsDB_v2";
 const DB_VERSION = 3;
 const STORE_CONFIG = "config";
@@ -668,6 +669,7 @@ function isNeutralCat(cat) {
 }
 function isPaiementCat(cat) { return (cat || "").toLowerCase().trim() === "paiement"; }
 function isAvanceCat(cat) { return (cat || "").toLowerCase().trim() === "avance"; }
+function isBulletinCat(cat) { return (cat || "").toLowerCase().trim() === "bulletin"; }
 
 function nowISO() { return new Date().toISOString(); }
 function todayISO() {
@@ -829,20 +831,43 @@ function closeRulesModal() {
 async function toggleSchoolFields() {
   const cat = $("catSelect").value || "";
   const isEcole = cat.toLowerCase().trim() === "école";
+  const isBulletin = isBulletinCat(cat);
+  const isSchoolLike = isEcole || isBulletin;
   const isDebit = isDebitCat(cat);
   const isPaiement = isPaiementCat(cat);
   const isAvance = isAvanceCat(cat);
 
-  // École fields
-  if (isEcole) {
+  const noteLabel = $("noteLabel");
+  const moyenneLabel = $("moyenneLabel");
+  const matiereWrap = $("matiereFieldWrap");
+  const bulletinReminder = $("bulletinReminder");
+
+  // École / Bulletin fields
+  if (isSchoolLike) {
     $("schoolFields").classList.add("visible");
     $("rulesInfoBtn").style.display = "inline-flex";
+    if (isBulletin) {
+      if (noteLabel) noteLabel.innerHTML = 'Moyenne globale <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+      if (moyenneLabel) moyenneLabel.innerHTML = 'Moyenne de classe <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+      if (matiereWrap) matiereWrap.style.display = "none";
+      if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
+      if (bulletinReminder) bulletinReminder.style.display = "block";
+    } else {
+      if (noteLabel) noteLabel.innerHTML = 'Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+      if (moyenneLabel) moyenneLabel.innerHTML = 'Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+      if (matiereWrap) matiereWrap.style.display = "block";
+      if (bulletinReminder) bulletinReminder.style.display = "none";
+    }
   } else {
     $("schoolFields").classList.remove("visible");
     $("rulesInfoBtn").style.display = "none";
     $("noteInput").value = "";
     $("moyenneInput").value = "";
     if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
+    if (noteLabel) noteLabel.innerHTML = 'Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+    if (moyenneLabel) moyenneLabel.innerHTML = 'Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
+    if (matiereWrap) matiereWrap.style.display = "block";
+    if (bulletinReminder) bulletinReminder.style.display = "none";
   }
 
   // Afficher/masquer les champs achat et avance selon la catégorie
@@ -865,22 +890,43 @@ async function toggleSchoolFields() {
     amtHint.style.display = "none";
     amtInput.classList.remove("depense-mode");
   }
+
+  if (isSchoolLike) calculateSchoolAmount();
 }
 
 /* ========================= Auto-calculate amount for École ========================= */
 function calculateSchoolAmount() {
-  if (($("catSelect").value || "").toLowerCase().trim() !== "école") return;
+  const cat = ($("catSelect").value || "").toLowerCase().trim();
   const note = parseFloat($("noteInput").value) || 0;
   const moyenne = parseFloat($("moyenneInput").value) || 0;
-  if (note === 100) { $("amtInput").value = "20"; return; }
-  if (note >= 85) {
-    const diff = note - moyenne;
-    $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff, 10))) : "0";
-  } else if (note >= 80) {
-    const diff = note - moyenne;
-    $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff / 2, 10))) : "0";
-  } else {
-    $("amtInput").value = "0";
+
+  if (cat === "école") {
+    if (note === 100) { $("amtInput").value = "20"; return; }
+    if (note >= 85) {
+      const diff = note - moyenne;
+      $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff, 10))) : "0";
+    } else if (note >= 80) {
+      const diff = note - moyenne;
+      $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff / 2, 10))) : "0";
+    } else {
+      $("amtInput").value = "0";
+    }
+    return;
+  }
+
+  if (cat === "bulletin") {
+    if (note < 80) {
+      $("amtInput").value = "0";
+      return;
+    }
+    let total = 100;
+    const diffClasse = note - moyenne;
+    if (diffClasse > 0) total += diffClasse * 5;
+    if (note >= 90) {
+      total += 50;
+      if (note > 90) total += (note - 90) * 10;
+    }
+    $("amtInput").value = String(Math.round(total));
   }
 }
 
@@ -958,6 +1004,7 @@ async function saveOrUpdate() {
   let amt = parseInt($("amtInput").value, 10);
   const desc = $("descInput").value.trim();
   const isEcole = (cat || "").toLowerCase().trim() === "école";
+  const isBulletin = isBulletinCat(cat);
   const isPaiement = isPaiementCat(cat);
   const isAvance = isAvanceCat(cat);
 
@@ -966,7 +1013,7 @@ async function saveOrUpdate() {
   let avanceId = parseInt($("avanceSelect").value, 10) || null;
 
   let note = null, moyenne = null, matiere = null;
-  if (isEcole) {
+  if (isEcole || isBulletin) {
     note = parseFloat($("noteInput").value);
     moyenne = parseFloat($("moyenneInput").value);
     matiere = $("matiereSelect").value;
@@ -1081,8 +1128,8 @@ async function saveOrUpdate() {
     category: cat,
     amount: amt,
     desc: desc.slice(0, 100),
-    note: isEcole ? note : null,
-    moyenne: isEcole ? moyenne : null,
+    note: (isEcole || isBulletin) ? note : null,
+    moyenne: (isEcole || isBulletin) ? moyenne : null,
     matiere: isEcole ? matiere : null,
     achatId: achatId,
     avanceId: avanceId,
