@@ -423,11 +423,19 @@
               <input id="filterDesc" type="text" placeholder="ex: lunch, défi..." />
             </div>
             <div>
-              <label>Date début</label>
+              <label>Ajouté le, début</label>
+              <input id="createdFrom" type="datetime-local" />
+            </div>
+            <div>
+              <label>Ajouté le, fin</label>
+              <input id="createdTo" type="datetime-local" />
+            </div>
+            <div>
+              <label>Date transaction, début</label>
               <input id="fromDate" type="date" />
             </div>
             <div>
-              <label>Date fin</label>
+              <label>Date transaction, fin</label>
               <input id="toDate" type="date" />
             </div>
           </div>
@@ -441,10 +449,11 @@
           <table>
             <thead>
               <tr>
+                <th><button data-sort="createdAt" class="smallBtn secondary" type="button">Date d'ajout</button></th>
                 <th><button data-sort="child" class="smallBtn secondary" type="button">Enfant</button></th>
                 <th class="right"><button data-sort="amount" class="smallBtn secondary" type="button">Montant</button></th>
                 <th>Description</th>
-                <th><button data-sort="date" class="smallBtn secondary" type="button">Date</button></th>
+                <th><button data-sort="date" class="smallBtn secondary" type="button">Date transaction</button></th>
                 <th><button data-sort="category" class="smallBtn secondary" type="button">Catégorie</button></th>
                 <th><button data-sort="matiere" class="smallBtn secondary" type="button">Matière</button></th>
                 <th style="width:92px;">Actions</th>
@@ -651,8 +660,8 @@ let CFG = {
 };
 let ALL_DATA = [];
 let ACTIVE_CHILD = null;
-let FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
-let SORT = { col: "date", dir: "desc" };
+let FILTER = { children: [], cats: [], desc: "", createdFrom: "", createdTo: "", from: "", to: "" };
+let SORT = { col: "createdAt", dir: "desc" };
 let TX_LIMIT = 25;         // 0 = tout afficher
 let ACHATS_TX_SORT = "desc";   // tri des transactions dans la section Achats
 let AVANCES_TX_SORT = "desc";  // tri des transactions dans la section Avances
@@ -688,6 +697,37 @@ function formatTS(ts) {
   const d = new Date(ts);
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function defaultCreatedAtNoon() {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  return d.getTime();
+}
+function normalizeTimestamp(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const n = Number(value);
+  if (Number.isFinite(n) && n > 0) return n;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+function dateTimeLocalToTs(value) {
+  if (!value) return null;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+}
+async function backfillMissingCreatedAt() {
+  const rows = await dbGetAll(STORE_TX);
+  const fallback = defaultCreatedAtNoon();
+  let changed = false;
+  for (const r of rows) {
+    if (!Number.isFinite(Number(r.createdAt)) || Number(r.createdAt) <= 0) {
+      r.createdAt = fallback;
+      if (r.updatedAt === undefined) r.updatedAt = null;
+      await dbPut(STORE_TX, r);
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 /* ========================= IndexedDB ========================= */
@@ -1140,7 +1180,7 @@ async function saveOrUpdate() {
   if (EDIT_MODE && EDIT_ID !== null) {
     record.id = EDIT_ID;
     const existing = await dbGet(STORE_TX, EDIT_ID);
-    if (existing) record.createdAt = existing.createdAt;
+    if (existing) record.createdAt = normalizeTimestamp(existing.createdAt, defaultCreatedAtNoon());
     record.updatedAt = Date.now();
     await dbPut(STORE_TX, record);
     await logAction("UPDATE", amt, `Modif: ${ACTIVE_CHILD} | ${cat}${matiere ? " | " + matiere : ""} | ${desc}`);
@@ -1168,7 +1208,14 @@ function cancelEdit() {
 
 /* ========================= Load / Delete / Edit ========================= */
 async function refreshData() {
-  ALL_DATA = (await dbGetAll(STORE_TX)).map(r => ({...r, amount: Math.round(Number(r.amount || 0))}));
+  await backfillMissingCreatedAt();
+  const fallback = defaultCreatedAtNoon();
+  ALL_DATA = (await dbGetAll(STORE_TX)).map(r => ({
+    ...r,
+    amount: Math.round(Number(r.amount || 0)),
+    createdAt: normalizeTimestamp(r.createdAt, fallback),
+    updatedAt: r.updatedAt ? normalizeTimestamp(r.updatedAt, null) : null
+  }));
   renderTable();
   await renderTotals();
   await renderLog();
@@ -1244,7 +1291,14 @@ function applyFilters(data) {
   let arr = data.slice();
   if (FILTER.children.length > 0) arr = arr.filter(r => FILTER.children.includes(r.child));
   if (FILTER.cats.length > 0) arr = arr.filter(r => FILTER.cats.includes(r.category));
-  if (FILTER.desc) { const s = FILTER.desc.toLowerCase(); arr = arr.filter(r => r.desc.toLowerCase().includes(s)); }
+  if (FILTER.desc) {
+    const s = FILTER.desc.toLowerCase();
+    arr = arr.filter(r => String(r.desc || "").toLowerCase().includes(s));
+  }
+  const createdFromTs = dateTimeLocalToTs(FILTER.createdFrom);
+  const createdToTs = dateTimeLocalToTs(FILTER.createdTo);
+  if (createdFromTs !== null) arr = arr.filter(r => normalizeTimestamp(r.createdAt, 0) >= createdFromTs);
+  if (createdToTs !== null) arr = arr.filter(r => normalizeTimestamp(r.createdAt, 0) <= createdToTs);
   if (FILTER.from) arr = arr.filter(r => r.date >= FILTER.from);
   if (FILTER.to) arr = arr.filter(r => r.date <= FILTER.to);
   return arr;
@@ -1252,8 +1306,9 @@ function applyFilters(data) {
 function sortData(data) {
   const col = SORT.col, dir = SORT.dir;
   data.sort((a, b) => {
-    let va = a[col] || "", vb = b[col] || "";
+    let va = a[col] ?? "", vb = b[col] ?? "";
     if (col === "date") { va = new Date(va).getTime(); vb = new Date(vb).getTime(); }
+    if (col === "createdAt" || col === "updatedAt") { va = normalizeTimestamp(va, 0); vb = normalizeTimestamp(vb, 0); }
     if (col === "amount") { va = parseFloat(va); vb = parseFloat(vb); }
     if (va < vb) return dir === "asc" ? -1 : 1;
     if (va > vb) return dir === "asc" ? 1 : -1;
@@ -1269,7 +1324,7 @@ function renderTable() {
   const tbody = $("txBody");
   tbody.innerHTML = "";
   if (displayed.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#6b7280;">Aucune transaction</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#6b7280;">Aucune transaction</td></tr>`;
   } else {
     for (const row of displayed) {
       const tr = document.createElement("tr");
@@ -1277,6 +1332,7 @@ function renderTable() {
       if (row.achatId) descExtra = ` <span class="pill" style="font-size:11px;background:#dbeafe;">💳 Achat #${row.achatId}</span>`;
       if (row.avanceId) descExtra = ` <span class="pill" style="font-size:11px;background:#fce7f3;">🎁 Avance #${row.avanceId}</span>`;
       tr.innerHTML = `
+        <td style="font-size:12px;white-space:nowrap;">${formatTS(row.createdAt)}</td>
         <td><span class="pill">${row.child}</span></td>
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
         <td>${row.desc}${descExtra}</td>
@@ -1760,11 +1816,13 @@ async function backupNow() {
 
 /* ========================= Export CSV ========================= */
 async function exportCSV() {
-  const rows = await dbGetAll(STORE_TX);
-  let csv = "Enfant,Date,Catégorie,Matière,Montant,Description,Créé le,Modifié le\n";
+  await backfillMissingCreatedAt();
+  const fallback = defaultCreatedAtNoon();
+  const rows = (await dbGetAll(STORE_TX)).map(r => ({ ...r, createdAt: normalizeTimestamp(r.createdAt, fallback) }));
+  let csv = "Date d'ajout,Enfant,Date transaction,Catégorie,Matière,Montant,Description,Modifié le\n";
   for (const r of rows) {
-    const esc = (s) => (s || "").replace(/"/g, '""');
-    csv += `"${esc(r.child)}","${r.date || ""}","${esc(r.category)}","${esc(r.matiere)}","${r.amount || 0}","${esc(r.desc)}","${formatTS(r.createdAt)}","${r.updatedAt ? formatTS(r.updatedAt) : ""}"\n`;
+    const esc = (s) => String(s || "").replace(/"/g, '""');
+    csv += `"${formatTS(r.createdAt)}","${esc(r.child)}","${r.date || ""}","${esc(r.category)}","${esc(r.matiere)}","${r.amount || 0}","${esc(r.desc)}","${r.updatedAt ? formatTS(r.updatedAt) : ""}"\n`;
   }
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -1777,9 +1835,12 @@ async function exportCSV() {
 
 /* ========================= Import / Export JSON ========================= */
 async function exportJSON() {
+  await backfillMissingCreatedAt();
+  const fallback = defaultCreatedAtNoon();
+  const txRows = (await dbGetAll(STORE_TX)).map(r => ({ ...r, createdAt: normalizeTimestamp(r.createdAt, fallback) }));
   const payload = {
-    version: 2, exportedAt: nowISO(), cfg: CFG,
-    tx: await dbGetAll(STORE_TX),
+    version: 3, exportedAt: nowISO(), cfg: CFG,
+    tx: txRows,
     log: await dbGetAll(STORE_LOG),
     achats: await dbGetAll(STORE_ACHATS),
     avances: await dbGetAll(STORE_AVANCES)
@@ -1841,8 +1902,8 @@ async function importJSON(file) {
       matiere: r.matiere ? String(r.matiere) : null,
       achatId: r.achatId ? Number(r.achatId) : null,
       avanceId: r.avanceId ? Number(r.avanceId) : null,
-      createdAt: Number(r.createdAt || Date.now()),
-      updatedAt: r.updatedAt ? Number(r.updatedAt) : null
+      createdAt: normalizeTimestamp(r.createdAt, defaultCreatedAtNoon()),
+      updatedAt: r.updatedAt ? normalizeTimestamp(r.updatedAt, null) : null
     };
     if (!safe.date || !safe.category || !Number.isFinite(safe.amount) || !safe.desc) continue;
     await dbAdd(STORE_TX, safe);
@@ -1890,9 +1951,10 @@ async function initUIAfterConfig() {
   $("dateInput").value = todayISO();
   renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
   renderMatiereSelect();
-  FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+  FILTER = { children: [], cats: [], desc: "", createdFrom: "", createdTo: "", from: "", to: "" };
   renderFilterSelects();
   $("fromDate").value = ""; $("toDate").value = ""; $("filterDesc").value = "";
+  $("createdFrom").value = ""; $("createdTo").value = "";
   await loadSettingsUI();
   await refreshData();
   setEditMode(false);
@@ -2021,14 +2083,16 @@ async function init() {
     FILTER.children = getSelectedValues($("filterChild"));
     FILTER.cats = getSelectedValues($("filterCat"));
     FILTER.desc = $("filterDesc").value || "";
+    FILTER.createdFrom = $("createdFrom").value || "";
+    FILTER.createdTo = $("createdTo").value || "";
     FILTER.from = $("fromDate").value || "";
     FILTER.to = $("toDate").value || "";
     renderTable();
   });
   $("clearFilterBtn").addEventListener("click", () => {
-    FILTER = { children: [], cats: [], desc: "", from: "", to: "" };
+    FILTER = { children: [], cats: [], desc: "", createdFrom: "", createdTo: "", from: "", to: "" };
     setSelectedValues($("filterChild"), []); setSelectedValues($("filterCat"), []);
-    $("filterDesc").value = ""; $("fromDate").value = ""; $("toDate").value = "";
+    $("filterDesc").value = ""; $("createdFrom").value = ""; $("createdTo").value = ""; $("fromDate").value = ""; $("toDate").value = "";
     renderTable();
   });
   $("exportBtn").addEventListener("click", backupNow);
@@ -2044,7 +2108,7 @@ async function init() {
     btn.addEventListener("click", () => {
       const col = btn.getAttribute("data-sort");
       if (SORT.col === col) SORT.dir = (SORT.dir === "asc") ? "desc" : "asc";
-      else { SORT.col = col; SORT.dir = col === "date" ? "desc" : "asc"; }
+      else { SORT.col = col; SORT.dir = (col === "date" || col === "createdAt") ? "desc" : "asc"; }
       renderTable();
     });
   });
