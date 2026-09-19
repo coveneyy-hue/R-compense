@@ -76,6 +76,11 @@
     #achatsCard.saisie-victor input, #achatsCard.saisie-victor select, #avancesCard.saisie-victor input, #avancesCard.saisie-victor select { background: #f6f9ff; }
     .school-fields { display: none; margin-top: 10px; }
     .school-fields.visible { display: block; }
+    .school-score-row.has-denominator { grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(86px,.45fr); }
+    .denominator-wrap label { visibility:hidden; }
+    .denominator-input { display:flex; align-items:center; gap:5px; }
+    .denominator-input span { font-weight:900; color:#4b5563; font-size:18px; }
+    .denominator-input input { min-width:0; }
     .iconBtn { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; border-radius:12px; border:1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color:#fff; cursor:pointer; font-size:18px; line-height:1; }
     .iconBtn:hover { background: rgba(255,255,255,0.18); }
     .iconBtn:active { transform: translateY(1px); }
@@ -261,7 +266,7 @@
           </tr>
         </tbody>
       </table>
-      <p style="font-size:12px;color:#6b7280;margin:12px 0 0;">La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat est arrondi à l'entier le plus proche.</p>
+      <p style="font-size:12px;color:#6b7280;margin:12px 0 0;">Pour École, la note et la moyenne sont d'abord ramenées sur 100 à partir du dénominateur commun. La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat final est arrondi à l'entier le plus proche.</p>
 
       <h3 style="margin:18px 0 10px;font-size:16px;">📋 Règles — Bulletin</h3>
       <table>
@@ -333,16 +338,24 @@
           <select id="matiereSelect"></select>
           <div id="matiereErr" class="field-error"></div>
         </div>
-        <div class="row" style="margin-top:10px;">
+        <div id="schoolScoreRow" class="row school-score-row" style="margin-top:10px;">
           <div>
             <label id="noteLabel">Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <input id="noteInput" type="number" step="1" min="0" max="100" />
+            <input id="noteInput" type="number" step="1" min="0" />
             <div id="noteErr" class="field-error"></div>
           </div>
           <div>
             <label id="moyenneLabel">Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span></label>
-            <input id="moyenneInput" type="number" step="1" min="0" max="100" />
+            <input id="moyenneInput" type="number" step="1" min="0" />
             <div id="moyenneErr" class="field-error"></div>
+          </div>
+          <div id="denominatorWrap" class="denominator-wrap" style="display:none;">
+            <label aria-hidden="true">Dénominateur</label>
+            <div class="denominator-input">
+              <span aria-hidden="true">/</span>
+              <input id="denominatorInput" type="number" step="1" min="1" value="100" aria-label="Dénominateur commun pour la note et la moyenne" title="Dénominateur commun" />
+            </div>
+            <div id="denominatorErr" class="field-error"></div>
           </div>
         </div>
       </div>
@@ -574,6 +587,10 @@
           <label>Catégories (une par ligne)</label>
           <textarea id="catsCfg"></textarea>
         </div>
+        <div style="margin-top:10px;">
+          <label>Catégorie affichée par défaut</label>
+          <select id="defaultCatCfg"></select>
+        </div>
         <div class="actions" style="margin-top:10px;">
           <button id="saveCfgBtn" class="secondary" type="button">Enregistrer catégories</button>
           <button id="resetCfgBtn" class="secondary" type="button">Remettre par défaut</button>
@@ -679,6 +696,13 @@ function isNeutralCat(cat) {
 function isPaiementCat(cat) { return (cat || "").toLowerCase().trim() === "paiement"; }
 function isAvanceCat(cat) { return (cat || "").toLowerCase().trim() === "avance"; }
 function isBulletinCat(cat) { return (cat || "").toLowerCase().trim() === "bulletin"; }
+function sortCategoriesAlpha(cats) {
+  return [...(cats || [])].sort((a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" }));
+}
+function getDefaultCategory() {
+  const sorted = sortCategoriesAlpha(CFG.cats);
+  return sorted.includes(CFG.defaults?.cat) ? CFG.defaults.cat : (sorted[0] || "");
+}
 
 function nowISO() { return new Date().toISOString(); }
 function todayISO() {
@@ -849,7 +873,7 @@ function renderMatiereSelect(selectedValue) {
   }
 }
 function lockEntryForm(lock) {
-  document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #matiereSelect, #achatSelect, #avanceSelect, #saveDiskBtn")
+  document.querySelectorAll("#dateInput, #catSelect, #amtInput, #descInput, #noteInput, #moyenneInput, #denominatorInput, #matiereSelect, #achatSelect, #avanceSelect, #saveDiskBtn")
     .forEach(el => el.disabled = lock);
   if (lock) setStatus("Sélectionne Lily ou Victor pour commencer 👆");
 }
@@ -881,6 +905,8 @@ async function toggleSchoolFields() {
   const moyenneLabel = $("moyenneLabel");
   const matiereWrap = $("matiereFieldWrap");
   const bulletinReminder = $("bulletinReminder");
+  const denominatorWrap = $("denominatorWrap");
+  const schoolScoreRow = $("schoolScoreRow");
 
   // École / Bulletin fields
   if (isSchoolLike) {
@@ -892,11 +918,16 @@ async function toggleSchoolFields() {
       if (matiereWrap) matiereWrap.style.display = "none";
       if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
       if (bulletinReminder) bulletinReminder.style.display = "block";
+      if (denominatorWrap) denominatorWrap.style.display = "none";
+      if (schoolScoreRow) schoolScoreRow.classList.remove("has-denominator");
     } else {
       if (noteLabel) noteLabel.innerHTML = 'Note <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
       if (moyenneLabel) moyenneLabel.innerHTML = 'Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
       if (matiereWrap) matiereWrap.style.display = "block";
       if (bulletinReminder) bulletinReminder.style.display = "none";
+      if (denominatorWrap) denominatorWrap.style.display = "block";
+      if (schoolScoreRow) schoolScoreRow.classList.add("has-denominator");
+      if (!Number.isFinite(parseFloat($("denominatorInput").value)) || parseFloat($("denominatorInput").value) <= 0) $("denominatorInput").value = "100";
     }
   } else {
     $("schoolFields").classList.remove("visible");
@@ -908,6 +939,8 @@ async function toggleSchoolFields() {
     if (moyenneLabel) moyenneLabel.innerHTML = 'Moyenne <span style="color:#b91c1c; font-size:11px;">obligatoire</span>';
     if (matiereWrap) matiereWrap.style.display = "block";
     if (bulletinReminder) bulletinReminder.style.display = "none";
+    if (denominatorWrap) denominatorWrap.style.display = "none";
+    if (schoolScoreRow) schoolScoreRow.classList.remove("has-denominator");
   }
 
   // Afficher/masquer les champs achat et avance selon la catégorie
@@ -937,34 +970,45 @@ async function toggleSchoolFields() {
 /* ========================= Auto-calculate amount for École ========================= */
 function calculateSchoolAmount() {
   const cat = ($("catSelect").value || "").toLowerCase().trim();
-  const note = parseFloat($("noteInput").value) || 0;
-  const moyenne = parseFloat($("moyenneInput").value) || 0;
+  const note = parseFloat($("noteInput").value);
+  const moyenne = parseFloat($("moyenneInput").value);
 
   if (cat === "école") {
-    if (note === 100) { $("amtInput").value = "20"; return; }
-    if (note >= 85) {
-      const diff = note - moyenne;
-      $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff, 10))) : "0";
-    } else if (note >= 80) {
-      const diff = note - moyenne;
-      $("amtInput").value = diff > 0 ? String(Math.round(Math.min(diff / 2, 10))) : "0";
-    } else {
+    const denominator = parseFloat($("denominatorInput").value);
+    if (!Number.isFinite(note) || !Number.isFinite(moyenne) || !Number.isFinite(denominator) || denominator <= 0) {
       $("amtInput").value = "0";
+      return;
     }
+    const coefficient = 100 / denominator;
+    const notePct = note * coefficient;
+    const moyennePct = moyenne * coefficient;
+    let amount = 0;
+    if (Math.abs(notePct - 100) < 1e-9) {
+      amount = 20;
+    } else if (notePct >= 85) {
+      const diff = notePct - moyennePct;
+      amount = diff > 0 ? Math.min(diff, 10) : 0;
+    } else if (notePct >= 80) {
+      const diff = notePct - moyennePct;
+      amount = diff > 0 ? Math.min(diff / 2, 10) : 0;
+    }
+    $("amtInput").value = String(Math.round(amount));
     return;
   }
 
   if (cat === "bulletin") {
-    if (note < 80) {
+    const safeNote = Number.isFinite(note) ? note : 0;
+    const safeMoyenne = Number.isFinite(moyenne) ? moyenne : 0;
+    if (safeNote < 80) {
       $("amtInput").value = "0";
       return;
     }
     let total = 100;
-    const diffClasse = note - moyenne;
+    const diffClasse = safeNote - safeMoyenne;
     if (diffClasse > 0) total += diffClasse * 5;
-    if (note >= 90) {
+    if (safeNote >= 90) {
       total += 50;
-      if (note > 90) total += (note - 90) * 10;
+      if (safeNote > 90) total += (safeNote - 90) * 10;
     }
     $("amtInput").value = String(Math.round(total));
   }
@@ -1003,12 +1047,13 @@ function setActiveChild(childName) {
 }
 
 function resetEntryForm() {
-  $("dateInput").value = todayISO();
-  $("catSelect").value = "Tâches ménagères";$("catSelect").value = "Dépense";
+  $("dateInput").value = "";
+  $("catSelect").value = getDefaultCategory();
   $("amtInput").value = "";
   $("descInput").value = "";
   $("noteInput").value = "";
   $("moyenneInput").value = "";
+  $("denominatorInput").value = "100";
   if ($("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
   if ($("achatSelect")) { $("achatSelect").innerHTML = `<option value="">— Sélectionner un achat —</option>`; }
   if ($("avanceSelect")) { $("avanceSelect").innerHTML = `<option value="">— Sélectionner une avance —</option>`; }
@@ -1024,9 +1069,9 @@ function resetEntryForm() {
   const avf = $("avanceField"); if (avf) avf.style.display = "none";
   updateDescCounter();
   // Clear all field-level errors
-  ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","achatErr","avanceErr"]
+  ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","denominatorErr","achatErr","avanceErr"]
     .forEach(id => { const e = $(id); if (e) { e.textContent = ""; e.classList.remove("show"); } });
-  ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","achatSelect","avanceSelect"]
+  ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","denominatorInput","achatSelect","avanceSelect"]
     .forEach(id => { const e = $(id); if (e) e.classList.remove("input-error"); });
   // Re-apply based on currently selected cat
   toggleSchoolFields();
@@ -1052,11 +1097,12 @@ async function saveOrUpdate() {
   let achatId = parseInt($("achatSelect").value, 10) || null;
   let avanceId = parseInt($("avanceSelect").value, 10) || null;
 
-  let note = null, moyenne = null, matiere = null;
+  let note = null, moyenne = null, denominator = null, matiere = null;
   if (isEcole || isBulletin) {
     note = parseFloat($("noteInput").value);
     moyenne = parseFloat($("moyenneInput").value);
     matiere = $("matiereSelect").value;
+    if (isEcole) denominator = parseFloat($("denominatorInput").value);
   }
 
   // ── Validation avec erreurs par champ ──
@@ -1071,9 +1117,9 @@ async function saveOrUpdate() {
     if (el) el.classList.toggle("input-error", hasErr);
   };
   const clearAllErrors = () => {
-    ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","achatErr","avanceErr"]
+    ["dateErr","amtErr","descErr","matiereErr","noteErr","moyenneErr","denominatorErr","achatErr","avanceErr"]
       .forEach(id => fieldErr(id, ""));
-    ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","achatSelect","avanceSelect"]
+    ["dateInput","amtInput","descInput","matiereSelect","noteInput","moyenneInput","denominatorInput","achatSelect","avanceSelect"]
       .forEach(id => fieldInputErr(id, false));
   };
   clearAllErrors();
@@ -1085,6 +1131,9 @@ async function saveOrUpdate() {
   if (isEcole && !matiere)               { fieldErr("matiereErr"); fieldInputErr("matiereSelect", true); hasError = true; }
   if (isEcole && !Number.isFinite(note)) { fieldErr("noteErr");    fieldInputErr("noteInput",      true); hasError = true; }
   if (isEcole && !Number.isFinite(moyenne)) { fieldErr("moyenneErr"); fieldInputErr("moyenneInput", true); hasError = true; }
+  if (isEcole && (!Number.isFinite(denominator) || denominator <= 0)) { fieldErr("denominatorErr", "Valeur > 0 requise"); fieldInputErr("denominatorInput", true); hasError = true; }
+  if (isEcole && Number.isFinite(denominator) && Number.isFinite(note) && (note < 0 || note > denominator)) { fieldErr("noteErr", `Doit être entre 0 et ${denominator}`); fieldInputErr("noteInput", true); hasError = true; }
+  if (isEcole && Number.isFinite(denominator) && Number.isFinite(moyenne) && (moyenne < 0 || moyenne > denominator)) { fieldErr("moyenneErr", `Doit être entre 0 et ${denominator}`); fieldInputErr("moyenneInput", true); hasError = true; }
   if (isPaiement && !achatId)            { fieldErr("achatErr", "Champ requis — sélectionne un achat"); fieldInputErr("achatSelect", true); hasError = true; }
   if (isAvance && !avanceId)             { fieldErr("avanceErr", "Champ requis — sélectionne une avance"); fieldInputErr("avanceSelect", true); hasError = true; }
   if (achatId && avanceId)               { fieldErr("achatErr", "Choisir achat OU avance, pas les deux"); fieldErr("avanceErr", "Choisir achat OU avance, pas les deux"); hasError = true; }
@@ -1142,6 +1191,7 @@ async function saveOrUpdate() {
         Number.isFinite(r.note) && Number.isFinite(r.moyenne) &&
         Math.abs(r.note - note) < 1e-9 &&
         Math.abs(r.moyenne - moyenne) < 1e-9 &&
+        Math.abs((Number(r.denominator) || 100) - denominator) < 1e-9 &&
         (r.matiere || "") === matiere &&
         Math.abs(new Date(r.date + "T00:00:00") - baseDate) <= ONE_MONTH_MS
       );
@@ -1150,7 +1200,7 @@ async function saveOrUpdate() {
         `Doublon potentiel détecté !\n\n` +
         `Pour ${ACTIVE_CHILD}, une entrée École identique existe déjà :\n` +
         `• Matière : ${dup.matiere || "(non définie)"}\n` +
-        `• Note : ${dup.note}  —  Moyenne : ${dup.moyenne}\n` +
+        `• Note : ${dup.note}/${Number(dup.denominator) || 100}  •  Moyenne : ${dup.moyenne}/${Number(dup.denominator) || 100}\n` +
         `• Date existante : ${dup.date}\n` +
         `• Description existante : "${(dup.desc || "").slice(0, 100)}"\n\n` +
         `Nouvelle description : "${desc.slice(0, 100)}"\n\n` +
@@ -1170,6 +1220,7 @@ async function saveOrUpdate() {
     desc: desc.slice(0, 100),
     note: (isEcole || isBulletin) ? note : null,
     moyenne: (isEcole || isBulletin) ? moyenne : null,
+    denominator: isEcole ? denominator : null,
     matiere: isEcole ? matiere : null,
     achatId: achatId,
     avanceId: avanceId,
@@ -1248,6 +1299,7 @@ async function editRecord(id) {
   $("descInput").value = rec.desc;
   $("noteInput").value = (rec.note ?? "");
   $("moyenneInput").value = (rec.moyenne ?? "");
+  $("denominatorInput").value = (Number.isFinite(Number(rec.denominator)) && Number(rec.denominator) > 0) ? Number(rec.denominator) : 100;
   await toggleSchoolFields();
   // Restore matière
   if (rec.matiere) {
@@ -1744,8 +1796,15 @@ async function refreshAvanceSelect() {
 }
 
 /* ========================= Settings ========================= */
+function refreshDefaultCategorySettingOptions(cats, selected) {
+  const select = $("defaultCatCfg");
+  if (!select) return;
+  const sorted = sortCategoriesAlpha(cats);
+  renderSelectOptions(select, sorted, sorted.includes(selected) ? selected : (sorted[0] || ""));
+}
 async function loadSettingsUI() {
   $("catsCfg").value = CFG.cats.join("\n");
+  refreshDefaultCategorySettingOptions(CFG.cats, getDefaultCategory());
   $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n");
   $("backupDays").value = CFG.backup?.intervalDays || 7;
   $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
@@ -1754,7 +1813,8 @@ async function saveSettingsFromUI() {
   const lines = $("catsCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
   if (lines.length === 0) return setStatus("Au moins une catégorie.");
   CFG.cats = lines;
-  if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
+  const requestedDefault = $("defaultCatCfg").value;
+  CFG.defaults.cat = CFG.cats.includes(requestedDefault) ? requestedDefault : sortCategoriesAlpha(CFG.cats)[0];
   await saveConfig(CFG);
   await initUIAfterConfig();
   setStatus("Catégories enregistrées ✅");
@@ -1839,7 +1899,7 @@ async function exportJSON() {
   const fallback = defaultCreatedAtNoon();
   const txRows = (await dbGetAll(STORE_TX)).map(r => ({ ...r, createdAt: normalizeTimestamp(r.createdAt, fallback) }));
   const payload = {
-    version: 3, exportedAt: nowISO(), cfg: CFG,
+    version: 4, exportedAt: nowISO(), cfg: CFG,
     tx: txRows,
     log: await dbGetAll(STORE_LOG),
     achats: await dbGetAll(STORE_ACHATS),
@@ -1899,6 +1959,7 @@ async function importJSON(file) {
       desc: String(r.desc || "").slice(0, 100),
       note: (r.note !== undefined && r.note !== null) ? Number(r.note) : null,
       moyenne: (r.moyenne !== undefined && r.moyenne !== null) ? Number(r.moyenne) : null,
+      denominator: ((r.category || "").toLowerCase().trim() === "école") ? ((Number.isFinite(Number(r.denominator)) && Number(r.denominator) > 0) ? Number(r.denominator) : 100) : null,
       matiere: r.matiere ? String(r.matiere) : null,
       achatId: r.achatId ? Number(r.achatId) : null,
       avanceId: r.avanceId ? Number(r.avanceId) : null,
@@ -1948,8 +2009,8 @@ async function clearLog() {
 
 /* ========================= Init ========================= */
 async function initUIAfterConfig() {
-  $("dateInput").value = todayISO();
-  renderSelectOptions($("catSelect"), CFG.cats, CFG.defaults.cat || CFG.cats[0]);
+  $("dateInput").value = "";
+  renderSelectOptions($("catSelect"), sortCategoriesAlpha(CFG.cats), getDefaultCategory());
   renderMatiereSelect();
   FILTER = { children: [], cats: [], desc: "", createdFrom: "", createdTo: "", from: "", to: "" };
   renderFilterSelects();
@@ -2029,8 +2090,9 @@ async function init() {
   // Injecter les catégories obligatoires si elles sont absentes (migration)
   for (const rc of REQUIRED_CATS) { if (!CFG.cats.includes(rc)) CFG.cats.push(rc); }
   CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
-  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats?.[0] || DEFAULT_CATS[0] };
+  CFG.defaults = CFG.defaults || { kid: null, cat: sortCategoriesAlpha(CFG.cats)[0] || DEFAULT_CATS[0] };
   CFG.defaults.kid = null;
+  if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = sortCategoriesAlpha(CFG.cats)[0] || DEFAULT_CATS[0];
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
@@ -2049,6 +2111,7 @@ async function init() {
   $("catSelect").addEventListener("change", toggleSchoolFields);
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
+  $("denominatorInput").addEventListener("input", calculateSchoolAmount);
   $("backupNowBtn2").addEventListener("click", backupNow);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
@@ -2102,6 +2165,10 @@ async function init() {
   $("exportLogBtn").addEventListener("click", exportLogOnly);
   $("saveCfgBtn").addEventListener("click", saveSettingsFromUI);
   $("resetCfgBtn").addEventListener("click", resetSettingsToDefault);
+  $("catsCfg").addEventListener("input", () => {
+    const cats = $("catsCfg").value.split("\n").map(l => l.trim()).filter(Boolean);
+    refreshDefaultCategorySettingOptions(cats, $("defaultCatCfg").value || getDefaultCategory());
+  });
   $("saveMatieresCfgBtn").addEventListener("click", saveMatieresFromUI);
   $("resetMatieresCfgBtn").addEventListener("click", resetMatieresToDefault);
   document.querySelectorAll('button[data-sort]').forEach(btn => {

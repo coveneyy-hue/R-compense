@@ -1,11 +1,11 @@
 /* =========================================================
-   R-compense — Service Worker v4
+   R-compense — Service Worker v5
    Stratégie :
    - Network-First pour la navigation HTML
    - Cache-First pour les assets statiques
    ========================================================= */
 
-const CACHE_NAME = "rcompense-v4";
+const CACHE_NAME = "rcompense-v5";
 
 const ASSETS = [
   "./",
