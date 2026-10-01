@@ -267,6 +267,7 @@
         </tbody>
       </table>
       <p style="font-size:12px;color:#6b7280;margin:12px 0 0;">Pour École, la note et la moyenne sont d'abord ramenées sur 100 à partir du dénominateur commun. La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat final est arrondi à l'entier le plus proche.</p>
+      <p style="font-size:12px;color:#6b7280;margin:12px 0 0;"><strong>Victor, catégorie École :</strong> la moyenne utilisée pour le calcul est réduite de 5 points sur 100 pour tenir compte de sa classe avancée (exemple : 85 % devient 80 %). La moyenne saisie reste conservée. Cet ajustement ne s’applique pas au Bulletin.</p>
 
       <h3 style="margin:18px 0 10px;font-size:16px;">📋 Règles — Bulletin</h3>
       <table>
@@ -981,7 +982,8 @@ function calculateSchoolAmount() {
     }
     const coefficient = 100 / denominator;
     const notePct = note * coefficient;
-    const moyennePct = moyenne * coefficient;
+    // Victor : réduction de 5 points de la moyenne sur 100 pour la classe avancée.
+    const moyennePct = moyenne * coefficient - (ACTIVE_CHILD === "Victor" ? 5 : 0);
     let amount = 0;
     if (Math.abs(notePct - 100) < 1e-9) {
       amount = 20;
