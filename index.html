@@ -977,7 +977,7 @@ function calculateSchoolAmount() {
   if (cat === "école") {
     const denominator = parseFloat($("denominatorInput").value);
     if (!Number.isFinite(note) || !Number.isFinite(moyenne) || !Number.isFinite(denominator) || denominator <= 0) {
-      $("amtInput").value = "0";
+      $("amtInput").value = "";
       return;
     }
     const coefficient = 100 / denominator;
@@ -999,6 +999,10 @@ function calculateSchoolAmount() {
   }
 
   if (cat === "bulletin") {
+        if (!Number.isFinite(note)) {      // ← ajouter
+      $("amtInput").value = "";        // ← ajouter
+      return;                          // ← ajouter
+    }                                  // ← ajouter
     const safeNote = Number.isFinite(note) ? note : 0;
     const safeMoyenne = Number.isFinite(moyenne) ? moyenne : 0;
     if (safeNote < 80) {
