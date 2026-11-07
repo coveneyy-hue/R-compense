@@ -267,7 +267,6 @@
         </tbody>
       </table>
       <p style="font-size:12px;color:#6b7280;margin:12px 0 0;">Pour École, la note et la moyenne sont d'abord ramenées sur 100 à partir du dénominateur commun. La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat final est arrondi à l'entier le plus proche.</p>
-      <p style="font-size:12px;color:#6b7280;margin:12px 0 0;"><strong>Victor, catégorie École :</strong> la moyenne utilisée pour le calcul est réduite de 5 points sur 100 pour tenir compte de sa classe avancée (exemple : 85 % devient 80 %). La moyenne saisie reste conservée. Cet ajustement ne s’applique pas au Bulletin.</p>
 
       <h3 style="margin:18px 0 10px;font-size:16px;">📋 Règles — Bulletin</h3>
       <table>
@@ -620,22 +619,24 @@
           <div>
             <label>Dernier backup</label>
             <input id="lastBackupDisplay" type="text" disabled />
-            <div class="hint">Mis à jour quand tu fais "Backup auto".</div>
+            <div class="hint">Mis à jour seulement quand la sauvegarde est confirmée.</div>
           </div>
         </div>
         <div class="actions" style="margin-top:10px;">
           <button id="saveBackupCfgBtn" class="secondary" type="button">Enregistrer rappel</button>
-          <button id="backupNowBtn2" class="secondary" type="button">Backup auto (JSON + CSV)</button>
+          <button id="backupNowBtn2" class="secondary" type="button">Sauvegarder (JSON + CSV)</button>
         </div>
+        <div id="storageInfo" class="hint" style="margin-top:10px;"></div>
       </details>
     </section>
 
     <section class="card">
       <div class="actions">
-        <button id="exportBtn" class="secondary" type="button">Export</button>
-        <button id="importBtn" class="secondary" type="button">Import</button>
+        <button id="shareBtn" class="secondary" type="button">Partager la sauvegarde</button>
+        <button id="exportBtn" class="secondary" type="button">Télécharger la sauvegarde</button>
+        <button id="importBtn" class="secondary" type="button">Importer une sauvegarde</button>
       </div>
-      <input id="importFile" type="file" accept="application/json" style="display:none;" />
+      <input id="importFile" type="file" accept=".json,.txt,application/json,text/plain" style="display:none;" />
     </section>
   </main>
 
@@ -687,6 +688,10 @@ let EDIT_MODE = false;
 let EDIT_ID = null;
 let SAVE_MSG_TIMER = null;
 const $ = (id) => document.getElementById(id);
+// Tout texte saisi ou importé doit passer ici avant d'être inséré via innerHTML.
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 function isDebitCat(cat) {
   return DEBIT_CATS.map(c => c.toLowerCase().trim()).includes((cat || "").toLowerCase().trim());
@@ -713,6 +718,9 @@ function todayISO() {
 }
 function formatDateHuman(isoDate) {
   if (!isoDate) return "";
+  // Une date AAAA-MM-JJ est lue tel quel : new Date() la traiterait en UTC et afficherait la veille au Québec.
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+  if (m) return `${m[1]}/${m[2]}/${m[3]}`;
   const d = new Date(isoDate);
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
@@ -804,6 +812,28 @@ async function dbClear(store) {
   return new Promise((res, rej) => { const r = tx.objectStore(store).clear(); r.onsuccess = () => res(); r.onerror = () => rej(r.error); });
 }
 
+// Remplace tout le contenu en une seule transaction IndexedDB : tout réussit ou rien ne change.
+function dbReplaceAll({ cfg, tx, log, achats, avances }) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction([STORE_CONFIG, STORE_TX, STORE_LOG, STORE_ACHATS, STORE_AVANCES], "readwrite");
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+    try {
+      t.objectStore(STORE_CONFIG).put({ id: "main", data: cfg });
+      const rows = [[STORE_TX, tx], [STORE_LOG, log], [STORE_ACHATS, achats], [STORE_AVANCES, avances]];
+      for (const [storeName, items] of rows) {
+        const store = t.objectStore(storeName);
+        store.clear();
+        for (const item of items) store.put(item);
+      }
+    } catch (err) {
+      t.abort();
+      reject(err);
+    }
+  });
+}
+
 /* ========================= Config ========================= */
 async function loadConfig() {
   const obj = await dbGet(STORE_CONFIG, "main");
@@ -893,7 +923,7 @@ function closeRulesModal() {
 }
 
 /* ========================= School fields + Dépense hint ========================= */
-async function toggleSchoolFields() {
+async function toggleSchoolFields(options) {
   const cat = $("catSelect").value || "";
   const isEcole = cat.toLowerCase().trim() === "école";
   const isBulletin = isBulletinCat(cat);
@@ -965,7 +995,7 @@ async function toggleSchoolFields() {
     amtInput.classList.remove("depense-mode");
   }
 
-  if (isSchoolLike) calculateSchoolAmount();
+  if (isSchoolLike && !options?.keepAmount) calculateSchoolAmount();
 }
 
 /* ========================= Auto-calculate amount for École ========================= */
@@ -977,13 +1007,12 @@ function calculateSchoolAmount() {
   if (cat === "école") {
     const denominator = parseFloat($("denominatorInput").value);
     if (!Number.isFinite(note) || !Number.isFinite(moyenne) || !Number.isFinite(denominator) || denominator <= 0) {
-      $("amtInput").value = "";
+      $("amtInput").value = "0";
       return;
     }
     const coefficient = 100 / denominator;
     const notePct = note * coefficient;
-    // Victor : réduction de 5 points de la moyenne sur 100 pour la classe avancée.
-    const moyennePct = moyenne * coefficient - (ACTIVE_CHILD === "Victor" ? 5 : 0);
+    const moyennePct = moyenne * coefficient;
     let amount = 0;
     if (Math.abs(notePct - 100) < 1e-9) {
       amount = 20;
@@ -999,10 +1028,6 @@ function calculateSchoolAmount() {
   }
 
   if (cat === "bulletin") {
-        if (!Number.isFinite(note)) {      // ← ajouter
-      $("amtInput").value = "";        // ← ajouter
-      return;                          // ← ajouter
-    }                                  // ← ajouter
     const safeNote = Number.isFinite(note) ? note : 0;
     const safeMoyenne = Number.isFinite(moyenne) ? moyenne : 0;
     if (safeNote < 80) {
@@ -1022,6 +1047,13 @@ function calculateSchoolAmount() {
 
 /* ========================= Active child ========================= */
 function setActiveChild(childName) {
+  // Le formulaire est vidé plus bas : on quitte aussi le mode modification,
+  // sinon la prochaine saisie écraserait la transaction qui était en modification.
+  if (EDIT_MODE) {
+    setEditMode(false);
+    EDIT_ID = null;
+    setStatus("Modification annulée.");
+  }
   ACTIVE_CHILD = childName;
   const entryCard = $("entryCard");
   const achatsCard = $("achatsCard");
@@ -1162,7 +1194,8 @@ async function saveOrUpdate() {
     const achat = await dbGet(STORE_ACHATS, achatId);
     if (achat) {
       const txAll = await dbGetAll(STORE_TX);
-      const paid = txAll.filter(t => t.achatId === achatId).reduce((s, t) => s + (t.amount || 0), 0);
+      // En modification, le paiement en cours ne compte pas : il sera remplacé.
+      const paid = txAll.filter(t => t.achatId === achatId && !(EDIT_MODE && t.id === EDIT_ID)).reduce((s, t) => s + (t.amount || 0), 0);
       const solde = achat.totalAmount + paid;
       if (Math.abs(amt) > solde + 0.01) {
         setSaveMsg(`Paiement dépasse le solde restant (${solde} $)`, "warn");
@@ -1176,7 +1209,8 @@ async function saveOrUpdate() {
     const avance = await dbGet(STORE_AVANCES, avanceId);
     if (avance) {
       const txAll = await dbGetAll(STORE_TX);
-      const spent = txAll.filter(t => t.avanceId === avanceId).reduce((s, t) => s + (t.amount || 0), 0);
+      // En modification, la transaction en cours ne compte pas : elle sera remplacée.
+      const spent = txAll.filter(t => t.avanceId === avanceId && !(EDIT_MODE && t.id === EDIT_ID)).reduce((s, t) => s + (t.amount || 0), 0);
       const solde = avance.initialAmount - spent; // tx sont positives maintenant
       if (Math.abs(amt) > solde + 0.01) {
         setSaveMsg(`Dépense dépasse le solde de l'avance (${solde} $)`, "warn");
@@ -1289,6 +1323,8 @@ async function deleteRecord(id) {
   const rec = await dbGet(STORE_TX, id);
   if (!rec) return;
   await dbDelete(STORE_TX, id);
+  // Si cette transaction était en modification, enregistrer la recréerait.
+  if (EDIT_MODE && EDIT_ID === id) cancelEdit();
   await logAction("DELETE", rec.amount, `Suppression: ${rec.child} | ${rec.category}${rec.matiere ? " | " + rec.matiere : ""} | ${rec.desc}`);
   await refreshData();
   setStatus("Transaction supprimée ✅");
@@ -1296,9 +1332,9 @@ async function deleteRecord(id) {
 async function editRecord(id) {
   const rec = await dbGet(STORE_TX, id);
   if (!rec) return;
+  setActiveChild(FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0]);
   EDIT_ID = id;
   setEditMode(true);
-  setActiveChild(FIXED_KIDS.includes(rec.child) ? rec.child : FIXED_KIDS[0]);
   $("dateInput").value = rec.date;
   $("catSelect").value = rec.category;
   $("amtInput").value = rec.amount;
@@ -1306,7 +1342,8 @@ async function editRecord(id) {
   $("noteInput").value = (rec.note ?? "");
   $("moyenneInput").value = (rec.moyenne ?? "");
   $("denominatorInput").value = (Number.isFinite(Number(rec.denominator)) && Number(rec.denominator) > 0) ? Number(rec.denominator) : 100;
-  await toggleSchoolFields();
+  // Garder le montant enregistré : il peut inclure un ajout manuel (ex. +50 $ par matière à 100 %).
+  await toggleSchoolFields({ keepAmount: true });
   // Restore matière
   if (rec.matiere) {
     $("matiereSelect").value = rec.matiere;
@@ -1391,12 +1428,12 @@ function renderTable() {
       if (row.avanceId) descExtra = ` <span class="pill" style="font-size:11px;background:#fce7f3;">🎁 Avance #${row.avanceId}</span>`;
       tr.innerHTML = `
         <td style="font-size:12px;white-space:nowrap;">${formatTS(row.createdAt)}</td>
-        <td><span class="pill">${row.child}</span></td>
+        <td><span class="pill">${escapeHtml(row.child)}</span></td>
         <td class="right"><span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${row.amount} $</span></td>
-        <td>${row.desc}${descExtra}</td>
-        <td>${formatDateHuman(row.date)}</td>
-        <td>${row.category}</td>
-        <td style="font-size:13px;">${row.matiere || ""}</td>
+        <td>${escapeHtml(row.desc)}${descExtra}</td>
+        <td>${escapeHtml(formatDateHuman(row.date))}</td>
+        <td>${escapeHtml(row.category)}</td>
+        <td style="font-size:13px;">${escapeHtml(row.matiere)}</td>
         <td>
           <div class="actionBtns">
             <button class="actionIconBtn secondary" onclick="editRecord(${row.id})" type="button" title="Modifier" aria-label="Modifier">✏️</button>
@@ -1406,7 +1443,7 @@ function renderTable() {
       tbody.appendChild(tr);
     }
   }
-  const filteredSum = displayed.filter(r => !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
+  const filteredSum = filtered.filter(r => !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
   const limitNote = TX_LIMIT > 0 && totalFiltered > TX_LIMIT ? ` (${displayed.length} / ${totalFiltered})` : ` (${totalFiltered})`;
   $("rowsCount").textContent = `${totalFiltered} transaction(s)${TX_LIMIT > 0 && totalFiltered > TX_LIMIT ? " — " + displayed.length + " affichée(s)" : ""}`;
   $("filteredTotal").textContent = `${filteredSum} $`;
@@ -1434,9 +1471,9 @@ async function renderLog() {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td style="font-size:12px;">${formatTS(entry.ts)}</td>
-        <td><span class="pill">${entry.action}</span></td>
+        <td><span class="pill">${escapeHtml(entry.action)}</span></td>
         <td class="right"><span class="amt ${entry.amount >= 0 ? "pos" : "neg"}">${entry.amount} $</span></td>
-        <td style="font-size:12px;">${entry.details}</td>`;
+        <td style="font-size:12px;">${escapeHtml(entry.details)}</td>`;
       tbody.appendChild(tr);
     }
   }
@@ -1536,13 +1573,13 @@ async function renderAchats() {
     const pct = Math.min(100, Math.round(((achat.totalAmount - solde) / achat.totalAmount) * 100));
     const isDone = solde <= 0 || achat.closed;
     const soldeClass = isDone ? "done" : (solde <= achat.totalAmount * 0.25 ? "warn" : "ok");
-    const due = achat.dueDate ? `<div class="meta" style="white-space:nowrap;">Échéance : <strong>${achat.dueDate}</strong></div>` : "";
+    const due = achat.dueDate ? `<div class="meta" style="white-space:nowrap;">Échéance : <strong>${escapeHtml(achat.dueDate)}</strong></div>` : "";
 
     const txRows = txLinked.length === 0
       ? `<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:8px 6px;">Aucun paiement enregistré</td></tr>`
       : txLinked.map(t => `<tr>
-          <td>${formatDateHuman(t.date)}</td>
-          <td>${t.desc}</td>
+          <td>${escapeHtml(formatDateHuman(t.date))}</td>
+          <td>${escapeHtml(t.desc)}</td>
           <td class="right"><span class="amt neg">${t.amount} $</span></td>
         </tr>`).join("");
 
@@ -1557,7 +1594,7 @@ async function renderAchats() {
       <div style="width:100%;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
-            <div class="title">${achat.desc} <span class="pill" style="font-size:11px;">${achat.child}</span></div>
+            <div class="title">${escapeHtml(achat.desc)} <span class="pill" style="font-size:11px;">${escapeHtml(achat.child)}</span></div>
             <div class="meta">Total : <strong>${achat.totalAmount} $</strong></div>
             ${due}
             <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
@@ -1721,8 +1758,8 @@ async function renderAvances() {
     const txRows = txLinked.length === 0
       ? `<tr><td colspan="3" style="text-align:center;color:#9ca3af;padding:8px 6px;">Aucune dépense enregistrée</td></tr>`
       : txLinked.map(t => `<tr>
-          <td>${formatDateHuman(t.date)}</td>
-          <td>${t.desc}</td>
+          <td>${escapeHtml(formatDateHuman(t.date))}</td>
+          <td>${escapeHtml(t.desc)}</td>
           <td class="right"><span class="amt neg">${t.amount} $</span></td>
         </tr>`).join("");
 
@@ -1737,7 +1774,7 @@ async function renderAvances() {
       <div style="width:100%;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
-            <div class="title">${avance.desc} ${avance.child ? `<span class="pill" style="font-size:11px;">${avance.child}</span>` : ""}</div>
+            <div class="title">${escapeHtml(avance.desc)} ${avance.child ? `<span class="pill" style="font-size:11px;">${escapeHtml(avance.child)}</span>` : ""}</div>
             <div class="meta">Initial : <strong>${avance.initialAmount} $</strong> · Utilisé : ${spent} $</div>
             <div class="progress-bar-wrap" style="margin-top:6px;"><div class="progress-bar ${pct >= 75 ? "danger" : ""}" style="width:${pct}%"></div></div>
           </div>
@@ -1870,18 +1907,48 @@ function maybeRemindBackup() {
     ? `⚠️ Dernier backup il y a ${Math.floor(elapsedDays)} jours. Temps de refaire un backup !`
     : `✅ Backup OK (il y a ${Math.floor(elapsedDays)} jours).`;
 }
-async function backupNow() {
-  await exportJSON();
-  await exportCSV();
+// La date du dernier backup n'avance que si l'envoi est confirmé.
+async function markBackupDone(message) {
   CFG.backup.lastBackupTs = Date.now();
   await saveConfig(CFG);
   await updateBackupUI();
   maybeRemindBackup();
-  setStatus("Backup terminé (JSON + CSV) ✅");
+  setStatus(message);
+}
+// Téléchargement : le navigateur ne dit pas si les fichiers sont arrivés, donc on le demande.
+async function backupDownload() {
+  await exportJSON();
+  await exportCSV();
+  await new Promise(resolve => setTimeout(resolve, 800)); // laisse le temps aux téléchargements de démarrer
+  if (confirm("Les 2 fichiers (JSON et CSV) sont-ils bien dans tes téléchargements ?")) {
+    await markBackupDone("Backup terminé (JSON + CSV) ✅");
+  } else {
+    setStatus("Backup non confirmé : la date du dernier backup n'a pas changé.");
+  }
+}
+// Partage Android (Drive, OneDrive, courriel...). Le partage de fichiers .json est refusé
+// par Chrome : la sauvegarde part donc en .json.txt, un format que l'import accepte aussi.
+async function backupShare() {
+  const name = `budget-enfants-${todayISO()}`;
+  const files = [
+    new File([await buildBackupJSON()], `${name}.json.txt`, { type: "text/plain" }),
+    new File([await buildBackupCSV()], `${name}.csv`, { type: "text/csv" })
+  ];
+  if (!navigator.canShare || !navigator.canShare({ files })) return backupDownload();
+  try {
+    await navigator.share({ files, title: "Sauvegarde R-compense" });
+  } catch (err) {
+    return setStatus(err && err.name === "AbortError"
+      ? "Partage annulé : la date du dernier backup n'a pas changé."
+      : "Échec du partage : la date du dernier backup n'a pas changé.");
+  }
+  await logAction("BACKUP_PARTAGE", 0, "Sauvegarde partagée (JSON + CSV)");
+  await markBackupDone("Sauvegarde partagée ✅");
+  await refreshData();
 }
 
 /* ========================= Export CSV ========================= */
-async function exportCSV() {
+async function buildBackupCSV() {
   await backfillMissingCreatedAt();
   const fallback = defaultCreatedAtNoon();
   const rows = (await dbGetAll(STORE_TX)).map(r => ({ ...r, createdAt: normalizeTimestamp(r.createdAt, fallback) }));
@@ -1890,6 +1957,10 @@ async function exportCSV() {
     const esc = (s) => String(s || "").replace(/"/g, '""');
     csv += `"${formatTS(r.createdAt)}","${esc(r.child)}","${r.date || ""}","${esc(r.category)}","${esc(r.matiere)}","${r.amount || 0}","${esc(r.desc)}","${r.updatedAt ? formatTS(r.updatedAt) : ""}"\n`;
   }
+  return csv;
+}
+async function exportCSV() {
+  const csv = await buildBackupCSV();
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1900,7 +1971,7 @@ async function exportCSV() {
 }
 
 /* ========================= Import / Export JSON ========================= */
-async function exportJSON() {
+async function buildBackupJSON() {
   await backfillMissingCreatedAt();
   const fallback = defaultCreatedAtNoon();
   const txRows = (await dbGetAll(STORE_TX)).map(r => ({ ...r, createdAt: normalizeTimestamp(r.createdAt, fallback) }));
@@ -1911,7 +1982,10 @@ async function exportJSON() {
     achats: await dbGetAll(STORE_ACHATS),
     avances: await dbGetAll(STORE_AVANCES)
   };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  return JSON.stringify(payload, null, 2);
+}
+async function exportJSON() {
+  const blob = new Blob([await buildBackupJSON()], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = `budget-enfants-${todayISO()}.json`;
@@ -1932,30 +2006,25 @@ async function exportLogOnly() {
   setStatus("Export journal prêt ✅");
 }
 async function importJSON(file) {
-  const text = await file.text();
   let payload;
-  try { payload = JSON.parse(text); } catch { return setStatus("Fichier JSON invalide."); }
+  try { payload = JSON.parse(await file.text()); } catch { return setStatus("Fichier JSON invalide."); }
   if (!payload || !Array.isArray(payload.tx) || !payload.cfg) return setStatus("JSON non reconnu.");
 
-  CFG = payload.cfg;
-  CFG.kids = FIXED_KIDS;
-  CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
+  // 1. Tout préparer et valider en mémoire : rien n'est touché dans la base à cette étape.
+  const cfg = payload.cfg;
+  cfg.kids = FIXED_KIDS;
+  cfg.cats = Array.isArray(cfg.cats) && cfg.cats.length ? cfg.cats : DEFAULT_CATS;
   // Injecter les catégories obligatoires si absentes
-  for (const rc of REQUIRED_CATS) { if (!CFG.cats.includes(rc)) CFG.cats.push(rc); }
-  CFG.matieres = Array.isArray(CFG.matieres) && CFG.matieres.length ? CFG.matieres : DEFAULT_MATIERES;
-  CFG.defaults = CFG.defaults || { kid: null, cat: CFG.cats[0] };
-  CFG.defaults.kid = null;
-  if (!CFG.cats.includes(CFG.defaults.cat)) CFG.defaults.cat = CFG.cats[0];
-  CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
-  if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
-  if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+  for (const rc of REQUIRED_CATS) { if (!cfg.cats.includes(rc)) cfg.cats.push(rc); }
+  cfg.matieres = Array.isArray(cfg.matieres) && cfg.matieres.length ? cfg.matieres : DEFAULT_MATIERES;
+  cfg.defaults = cfg.defaults || { kid: null, cat: cfg.cats[0] };
+  cfg.defaults.kid = null;
+  if (!cfg.cats.includes(cfg.defaults.cat)) cfg.defaults.cat = cfg.cats[0];
+  cfg.backup = cfg.backup || { intervalDays: 7, lastBackupTs: null };
+  if (!Number.isFinite(Number(cfg.backup.intervalDays)) || Number(cfg.backup.intervalDays) < 1) cfg.backup.intervalDays = 7;
+  if (cfg.backup.lastBackupTs !== null && !Number.isFinite(Number(cfg.backup.lastBackupTs))) cfg.backup.lastBackupTs = null;
 
-  await saveConfig(CFG);
-  await dbClear(STORE_TX);
-  await dbClear(STORE_LOG);
-  await dbClear(STORE_ACHATS);
-  await dbClear(STORE_AVANCES);
-
+  const newTx = [], newLog = [], newAchats = [], newAvances = [];
   for (const r of payload.tx) {
     const safe = {
       child: FIXED_KIDS.includes(String(r.child)) ? String(r.child) : FIXED_KIDS[0],
@@ -1973,17 +2042,17 @@ async function importJSON(file) {
       updatedAt: r.updatedAt ? normalizeTimestamp(r.updatedAt, null) : null
     };
     if (!safe.date || !safe.category || !Number.isFinite(safe.amount) || !safe.desc) continue;
-    await dbAdd(STORE_TX, safe);
+    newTx.push(safe);
   }
   if (Array.isArray(payload.log)) {
     for (const l of payload.log) {
-      await dbAdd(STORE_LOG, { ts: Number(l.ts || Date.now()), action: String(l.action || "IMPORT"), amount: Math.round(Number(l.amount || 0)), details: String(l.details || "") });
+      newLog.push({ ts: Number(l.ts || Date.now()), action: String(l.action || "IMPORT"), amount: Math.round(Number(l.amount || 0)), details: String(l.details || "") });
     }
   }
-  // Restaurer achats (version 2+) — dbPut pour préserver les IDs originaux
+  // Restaurer achats (version 2+) — IDs originaux préservés pour garder les liens avec les transactions
   if (Array.isArray(payload.achats)) {
     for (const a of payload.achats) {
-      await dbPut(STORE_ACHATS, {
+      newAchats.push({
         id: Number(a.id),
         child: String(a.child || ""), desc: String(a.desc || ""),
         totalAmount: Number(a.totalAmount || 0), dueDate: a.dueDate || null,
@@ -1991,10 +2060,10 @@ async function importJSON(file) {
       });
     }
   }
-  // Restaurer avances (version 2+) — dbPut pour préserver les IDs originaux
+  // Restaurer avances (version 2+) — IDs originaux préservés pour garder les liens avec les transactions
   if (Array.isArray(payload.avances)) {
     for (const av of payload.avances) {
-      await dbPut(STORE_AVANCES, {
+      newAvances.push({
         id: Number(av.id),
         child: String(av.child || ""),
         desc: String(av.desc || ""), initialAmount: Number(av.initialAmount || 0),
@@ -2002,9 +2071,35 @@ async function importJSON(file) {
       });
     }
   }
+  if ([...newAchats, ...newAvances].some(item => !Number.isInteger(item.id) || item.id <= 0)) {
+    return setStatus("Import annulé : achat ou avance invalide dans le fichier. Rien n'a été modifié.");
+  }
+
+  // 2. Faire confirmer le remplacement, chiffres à l'appui.
+  const currentCounts = {
+    tx: (await dbGetAll(STORE_TX)).length,
+    achats: (await dbGetAll(STORE_ACHATS)).length,
+    avances: (await dbGetAll(STORE_AVANCES)).length
+  };
+  const ignored = payload.tx.length - newTx.length;
+  const msg =
+    `Remplacer TOUTES les données de l'application par ce fichier ?\n\n` +
+    `Actuellement : ${currentCounts.tx} transactions, ${currentCounts.achats} achats, ${currentCounts.avances} avances\n` +
+    `Dans le fichier : ${newTx.length} transactions, ${newAchats.length} achats, ${newAvances.length} avances\n` +
+    (ignored > 0 ? `\n⚠️ ${ignored} transaction(s) incomplète(s) du fichier seront ignorées.\n` : "") +
+    `\nLes données actuelles seront perdues. Cette action ne peut pas être annulée.`;
+  if (!confirm(msg)) return setStatus("Import annulé. Rien n'a été modifié.");
+
+  // 3. Remplacer en une seule opération : si une erreur survient, tout reste comme avant.
+  try {
+    await dbReplaceAll({ cfg, tx: newTx, log: newLog, achats: newAchats, avances: newAvances });
+  } catch {
+    return setStatus("Échec de l'import. Tes données n'ont pas été modifiées.");
+  }
+  CFG = cfg;
   await logAction("IMPORT", 0, "Import JSON complet (tx + journal + achats + avances)");
   await initUIAfterConfig();
-  setStatus("Import terminé ✅");
+  setStatus(ignored > 0 ? `Import terminé ✅ (${ignored} transaction(s) ignorée(s))` : "Import terminé ✅");
 }
 async function clearLog() {
   if (!confirm("Vider le journal des actions ?")) return;
@@ -2048,6 +2143,20 @@ window.addEventListener("appinstalled", () => {
   if (banner) banner.classList.remove("show");
 });
 
+// Demande au navigateur de ne pas effacer les données de lui-même, et affiche le résultat dans Paramètres.
+async function requestPersistentStorage() {
+  const el = $("storageInfo");
+  if (!navigator.storage || !navigator.storage.persist) {
+    if (el) el.textContent = "Protection du stockage : non disponible sur ce navigateur.";
+    return;
+  }
+  let granted = false;
+  try { granted = await navigator.storage.persist(); } catch { granted = false; }
+  if (el) el.textContent = granted
+    ? "Protection du stockage : active ✅ (le navigateur ne videra pas ces données de lui-même)."
+    : "Protection du stockage : refusée par le navigateur pour l'instant. Installe l'application et garde tes sauvegardes à jour.";
+}
+
 async function init() {
   // PWA install banner actions
   const installBtn = document.getElementById("installBtn");
@@ -2090,6 +2199,7 @@ async function init() {
     });
   }
   db = await openDB();
+  requestPersistentStorage();
   CFG = await loadConfig();
   CFG.kids = FIXED_KIDS;
   CFG.cats = Array.isArray(CFG.cats) && CFG.cats.length ? CFG.cats : DEFAULT_CATS;
@@ -2118,7 +2228,7 @@ async function init() {
   $("noteInput").addEventListener("input", calculateSchoolAmount);
   $("moyenneInput").addEventListener("input", calculateSchoolAmount);
   $("denominatorInput").addEventListener("input", calculateSchoolAmount);
-  $("backupNowBtn2").addEventListener("click", backupNow);
+  $("backupNowBtn2").addEventListener("click", backupShare);
   $("saveBackupCfgBtn").addEventListener("click", saveBackupReminderFromUI);
   $("kidLily").addEventListener("click", () => setActiveChild("Lily-Rose"));
   $("kidVictor").addEventListener("click", () => setActiveChild("Victor"));
@@ -2164,7 +2274,8 @@ async function init() {
     $("filterDesc").value = ""; $("createdFrom").value = ""; $("createdTo").value = ""; $("fromDate").value = ""; $("toDate").value = "";
     renderTable();
   });
-  $("exportBtn").addEventListener("click", backupNow);
+  $("shareBtn").addEventListener("click", backupShare);
+  $("exportBtn").addEventListener("click", backupDownload);
   $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => { const f = e.target.files?.[0]; if (!f) return; await importJSON(f); e.target.value = ""; });
   $("clearLogBtn").addEventListener("click", clearLog);
