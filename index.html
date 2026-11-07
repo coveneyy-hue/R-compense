@@ -18,15 +18,17 @@
       --bg:#F6F5FA; --card:#FFFFFF; --ink:#1E0F46; --muted:#5E5678; --line:#E4E1EE; --field:#F6F5FA; --nav:#FFFFFF;
       --gain:#0F6B4F; --debit:#B42318; --warn:#8A4B00; --toast-bg:#1E0F46; --toast-fg:#FFFFFF;
       --lily:#A8235F; --lily-on:#FFFFFF; --victor:#1B5AAE; --victor-on:#FFFFFF;
+      --viz-gain:#00809E; --viz-debit:#D9622B; --viz-class:#8A8499; --viz-lily:#A8235F; --viz-victor:#1B5AAE;
     }
     :root[data-theme="dark"] {
       color-scheme: dark;
       --bg:#141020; --card:#1F1A2E; --ink:#F3F0FA; --muted:#B1AAC8; --line:#352E48; --field:#2A2440; --nav:#1A1528;
       --gain:#62D6AB; --debit:#FF9B8F; --warn:#F5C26B; --toast-bg:#F3F0FA; --toast-fg:#1E0F46;
       --lily:#F7A8CD; --lily-on:#2A0A1B; --victor:#9CC4FF; --victor-on:#0B2447;
+      --viz-gain:#0FA0BE; --viz-debit:#D96A2E; --viz-class:#C9C5D6; --viz-lily:#D9468F; --viz-victor:#3D86E0;
     }
-    body[data-kid="lily"] { --accent:var(--lily); --on-accent:var(--lily-on); }
-    body[data-kid="victor"] { --accent:var(--victor); --on-accent:var(--victor-on); }
+    body[data-kid="lily"] { --accent:var(--lily); --on-accent:var(--lily-on); --viz-note:var(--viz-lily); }
+    body[data-kid="victor"] { --accent:var(--victor); --on-accent:var(--victor-on); --viz-note:var(--viz-victor); }
     * { box-sizing:border-box; }
     html, body { height:100%; }
     body {
@@ -120,7 +122,30 @@
     .logRow { padding:8px 0; border-top:1px solid var(--line); font-size:13px; overflow-wrap:anywhere; }
 
     /* Barre d'onglets */
-    #tabBar { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); padding-bottom:env(safe-area-inset-bottom,0px); border-top:1px solid var(--line); background:var(--nav); }
+    /* Statistiques */
+    .statTiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .statTile { padding:10px 8px; border-radius:12px; border:1px solid var(--line); background:var(--card); min-width:0; }
+    .statTile .lbl { font-size:12px; color:var(--muted); }
+    .statTile .val { font-size:18px; font-weight:700; margin-top:2px; font-variant-numeric:tabular-nums; }
+    .chartTitle { margin:0 0 2px; font-size:15px; font-weight:600; }
+    .legend { display:flex; flex-wrap:wrap; gap:4px 14px; margin:6px 0; font-size:13px; color:var(--muted); }
+    .legendKey { display:inline-flex; align-items:center; gap:6px; }
+    .swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+    .swatch.line { height:0; border-radius:0; border-top:2px dashed var(--viz-class); }
+    .chartSvg { display:block; width:100%; height:auto; touch-action:manipulation; }
+    .chartSvg text { font-size:11px; fill:var(--muted); font-family:inherit; }
+    .chartSvg .hit { fill:transparent; cursor:pointer; }
+    .chartReadout { min-height:40px; margin-top:6px; padding:8px 10px; border-radius:10px; font-size:13px; background:var(--field); overflow-wrap:anywhere; }
+    .matRow { width:100%; min-height:48px; padding:6px 8px; text-align:left; border-radius:10px; border:1px solid transparent; }
+    .matRow[aria-pressed="true"] { border-color:var(--accent); background:var(--field); }
+    .matHead { display:flex; justify-content:space-between; gap:8px; font-size:14px; }
+    .matHead .v { font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .matTrack { position:relative; display:block; height:8px; margin-top:6px; border-radius:4px; background:var(--line); }
+    .matFill { display:block; height:100%; border-radius:4px; background:var(--accent); }
+    .matTick { position:absolute; top:-3px; width:2px; height:14px; background:var(--ink); box-shadow:0 0 0 1px var(--card); }
+    .warnText { font-size:13px; font-weight:600; color:var(--warn); margin-top:4px; }
+
+    #tabBar { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); padding-bottom:env(safe-area-inset-bottom,0px); border-top:1px solid var(--line); background:var(--nav); }
     .tabBtn { min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:12px; font-weight:500; color:var(--muted); }
     .tabBtn[aria-current="page"] { color:var(--accent); font-weight:700; }
 
@@ -285,6 +310,22 @@
         </div>
       </div>
 
+      <div class="stack" id="goalsCard">
+        <h2>Objectifs d'épargne</h2>
+        <details class="card">
+          <summary>Nouvel objectif</summary>
+          <div class="detailsBody">
+            <div><label for="newGoalDesc">Description</label><input id="newGoalDesc" type="text" maxlength="80" /></div>
+            <div class="fieldRow">
+              <div><label for="newGoalAmt">Montant visé ($)</label><input id="newGoalAmt" type="number" step="1" min="1" inputmode="numeric" /></div>
+              <div><label for="newGoalDue">Échéance (optionnel)</label><input id="newGoalDue" type="date" /></div>
+            </div>
+            <button id="addGoalBtn" class="primaryBtn" type="button">Créer l'objectif</button>
+          </div>
+        </details>
+        <div id="goalsList" class="stack"></div>
+      </div>
+
       <div class="stack" id="avancesCard">
         <h2>Avances</h2>
         <div id="avancesTotals" class="totals"></div>
@@ -303,6 +344,39 @@
           <button id="sortAvancesTxBtn" class="linkBtn" type="button">Date ↓</button>
           <button id="deleteArchivedAvancesBtn" class="dangerBtn" type="button" hidden>Supprimer les archivées</button>
         </div>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="stats" aria-label="Statistiques">
+      <h1>Statistiques</h1>
+      <div id="statTiles" class="statTiles"></div>
+      <div class="card">
+        <h2 class="chartTitle">Gains et dépenses par mois</h2>
+        <div class="muted">12 derniers mois. Touche un mois pour voir les montants.</div>
+        <div class="legend">
+          <span class="legendKey"><span class="swatch" style="background:var(--viz-gain)"></span>Gains</span>
+          <span class="legendKey"><span class="swatch" style="background:var(--viz-debit)"></span>Dépenses</span>
+        </div>
+        <div id="monthChart"></div>
+        <div id="monthReadout" class="chartReadout" aria-live="polite"></div>
+        <details>
+          <summary style="font-size:14px;">Voir les chiffres</summary>
+          <div id="monthTable"></div>
+        </details>
+      </div>
+      <div class="card">
+        <h2 class="chartTitle">Notes par matière</h2>
+        <div class="muted">Moyenne des notes d'École sur 100. Le trait marque la moyenne de la classe. Touche une matière pour voir son évolution.</div>
+        <div id="matiereBars" class="stack" style="margin-top:8px;gap:2px;"></div>
+      </div>
+      <div class="card" id="matiereDetailCard">
+        <h2 class="chartTitle" id="matiereDetailTitle"></h2>
+        <div class="legend">
+          <span class="legendKey"><span class="swatch" style="background:var(--viz-note)"></span>Note</span>
+          <span class="legendKey"><span class="swatch line"></span>Moyenne de la classe</span>
+        </div>
+        <div id="matiereChart"></div>
+        <div id="matiereReadout" class="chartReadout" aria-live="polite"></div>
       </div>
     </section>
 
@@ -373,6 +447,35 @@
             </div>
           </div>
         </details>
+        <details>
+          <summary>Barèmes École et Bulletin</summary>
+          <div class="detailsBody">
+            <div class="hint" style="margin:0;">Les nouveaux barèmes servent aux prochains calculs. Les montants déjà enregistrés ne changent pas, sauf si tu modifies la note d'une entrée.</div>
+            <div class="fieldLabel" style="margin:0;font-weight:700;">École</div>
+            <div class="fieldRow">
+              <div><label for="rEcolePerfect">Note de 100 ($)</label><input id="rEcolePerfect" type="number" min="0" step="1" inputmode="numeric" /></div>
+              <div><label for="rEcoleCap">Maximum sinon ($)</label><input id="rEcoleCap" type="number" min="0" step="1" inputmode="numeric" /></div>
+              <div><label for="rEcoleHigh">Seuil plein calcul</label><input id="rEcoleHigh" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rEcoleMid">Seuil demi-calcul</label><input id="rEcoleMid" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rEcoleLily">Réduction moyenne, Lily-Rose</label><input id="rEcoleLily" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rEcoleVictor">Réduction moyenne, Victor</label><input id="rEcoleVictor" type="number" min="0" step="any" inputmode="decimal" /></div>
+            </div>
+            <div class="fieldLabel" style="margin:0;font-weight:700;">Bulletin</div>
+            <div class="fieldRow">
+              <div><label for="rBulMin">Moyenne minimale</label><input id="rBulMin" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rBulBase">Montant de base ($)</label><input id="rBulBase" type="number" min="0" step="1" inputmode="numeric" /></div>
+              <div><label for="rBulPerPct">Par % sur la classe ($)</label><input id="rBulPerPct" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rBulPerfect">Par matière à 100 % ($)</label><input id="rBulPerfect" type="number" min="0" step="1" inputmode="numeric" /></div>
+              <div><label for="rBulHonorMin">Seuil du bonus</label><input id="rBulHonorMin" type="number" min="0" step="any" inputmode="decimal" /></div>
+              <div><label for="rBulHonorBonus">Bonus ($)</label><input id="rBulHonorBonus" type="number" min="0" step="1" inputmode="numeric" /></div>
+              <div><label for="rBulPerPctAbove">Par % sur le seuil ($)</label><input id="rBulPerPctAbove" type="number" min="0" step="any" inputmode="decimal" /></div>
+            </div>
+            <div class="btnGrid">
+              <button id="saveRulesBtn" class="secondaryBtn" type="button">Enregistrer</button>
+              <button id="resetRulesBtn" class="secondaryBtn" type="button">Par défaut</button>
+            </div>
+          </div>
+        </details>
         <button id="settingsRulesBtn" class="linkBtn" type="button" style="color:var(--ink);">Voir les règles École et Bulletin</button>
       </div>
       <div id="dbInfo" class="muted"></div>
@@ -388,6 +491,9 @@
     </button>
     <button class="tabBtn" type="button" data-tab="achats">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Achats
+    </button>
+    <button class="tabBtn" type="button" data-tab="stats">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20v-7M12 20V5M19 20v-11"/></svg>Stats
     </button>
     <button class="tabBtn" type="button" data-tab="settings">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Réglages
@@ -487,32 +593,7 @@
 
   <div id="rulesModal" role="dialog" aria-modal="true" aria-labelledby="rulesModalTitle">
     <div id="rulesModalBox">
-      <h3 id="rulesModalTitle">Règles : récompense École</h3>
-      <table>
-        <thead><tr><th>Condition</th><th>Calcul</th><th>Max</th></tr></thead>
-        <tbody>
-          <tr><td>Note = 100</td><td>Montant fixe</td><td>20 $</td></tr>
-          <tr><td>Note ≥ 85</td><td>Note − Moyenne</td><td>10 $</td></tr>
-          <tr><td>80 ≤ Note &lt; 85</td><td>(Note − Moyenne) ÷ 2</td><td>10 $</td></tr>
-          <tr><td>Note &lt; 80</td><td>—</td><td>0 $</td></tr>
-        </tbody>
-      </table>
-      <p>Pour École, la note et la moyenne sont d'abord ramenées sur 100 à partir du dénominateur commun. La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat final est arrondi à l'entier le plus proche.</p>
-      <p><strong>Victor, catégorie École :</strong> la moyenne utilisée pour le calcul est réduite de 5 points sur 100 pour tenir compte de sa classe avancée (exemple : 85 % devient 80 %). La moyenne saisie reste conservée. Cet ajustement ne s’applique pas au Bulletin.</p>
-
-      <h3>Règles : Bulletin</h3>
-      <table>
-        <thead><tr><th>Condition</th><th>Montant</th></tr></thead>
-        <tbody>
-          <tr><td>Moyenne globale ≥ 80 %</td><td>100 $</td></tr>
-          <tr><td>Chaque % de la moyenne de l'enfant au-dessus de la moyenne de classe</td><td>+5 $ / %</td></tr>
-          <tr><td>Chaque matière à 100 %</td><td>+50 $</td></tr>
-          <tr><td>Moyenne globale ≥ 90 %</td><td>+50 $</td></tr>
-          <tr><td>Chaque % au-dessus de 90 % (moyenne globale)</td><td>+10 $ / %</td></tr>
-          <tr><td>Moyenne globale &lt; 80 %</td><td>0 $</td></tr>
-        </tbody>
-      </table>
-      <p>Exemple : moyenne enfant 91 %, moyenne classe 80 %, 1 matière à 100 % → 100 $ + 55 $ + 50 $ + 50 $ + 10 $ = <strong>265 $</strong></p>
+      <div id="rulesContent"></div>
       <button id="rulesModalClose" class="primaryBtn" type="button">Fermer</button>
     </div>
   </div>
@@ -813,6 +894,7 @@ function hideSheet() {
 }
 function openRulesModal() {
   if (isRulesOpen()) return;
+  renderRulesContent();
   $("rulesModal").classList.add("open");
   history.pushState({ rc: "rules" }, "");
 }
@@ -909,34 +991,36 @@ async function toggleSchoolFields(options) {
 function computeSchoolAmount(cat, note, moyenne, denominator, nb100, child) {
   if (cat === "école") {
     if (!Number.isFinite(note) || !Number.isFinite(moyenne) || !Number.isFinite(denominator) || denominator <= 0) return null;
+    const e = CFG.rules.ecole;
     const coefficient = 100 / denominator;
     const notePct = note * coefficient;
-    // Victor : réduction de 5 points de la moyenne sur 100 pour la classe avancée.
-    const moyennePct = moyenne * coefficient - (child === "Victor" ? 5 : 0);
+    // Réduction de la moyenne sur 100 propre à chaque enfant (ex. classe avancée de Victor).
+    const moyennePct = moyenne * coefficient - (e.reduction[child] || 0);
     let amount = 0;
     if (Math.abs(notePct - 100) < 1e-9) {
-      amount = 20;
-    } else if (notePct >= 85) {
+      amount = e.perfect;
+    } else if (notePct >= e.high) {
       const diff = notePct - moyennePct;
-      amount = diff > 0 ? Math.min(diff, 10) : 0;
-    } else if (notePct >= 80) {
+      amount = diff > 0 ? Math.min(diff, e.cap) : 0;
+    } else if (notePct >= e.mid) {
       const diff = notePct - moyennePct;
-      amount = diff > 0 ? Math.min(diff / 2, 10) : 0;
+      amount = diff > 0 ? Math.min(diff / e.midDivisor, e.cap) : 0;
     }
     return Math.round(amount);
   }
   if (cat === "bulletin") {
     if (!Number.isFinite(note)) return null;
-    if (note < 80) return 0;
+    const b = CFG.rules.bulletin;
+    if (note < b.min) return 0;
     const safeMoyenne = Number.isFinite(moyenne) ? moyenne : 0;
-    let total = 100;
+    let total = b.base;
     const diffClasse = note - safeMoyenne;
-    if (diffClasse > 0) total += diffClasse * 5;
-    if (note >= 90) {
-      total += 50;
-      if (note > 90) total += (note - 90) * 10;
+    if (diffClasse > 0) total += diffClasse * b.perPct;
+    if (note >= b.honorMin) {
+      total += b.honorBonus;
+      if (note > b.honorMin) total += (note - b.honorMin) * b.perPctAbove;
     }
-    total += (Number(nb100) || 0) * 50;
+    total += (Number(nb100) || 0) * b.perfect;
     return Math.round(total);
   }
   return null;
@@ -959,9 +1043,10 @@ function calculateSchoolAmount() {
 function bulletinNb100(rec) {
   if (Number.isFinite(rec.nb100)) return rec.nb100;
   const base = computeSchoolAmount("bulletin", rec.note, rec.moyenne, null, 0, rec.child);
-  if (base === null || rec.note < 80) return 0;
+  const perfect = CFG.rules.bulletin.perfect;
+  if (base === null || rec.note < CFG.rules.bulletin.min || perfect <= 0) return 0;
   const extra = rec.amount - base;
-  return extra > 0 && extra % 50 === 0 ? extra / 50 : 0;
+  return extra > 0 && extra % perfect === 0 ? extra / perfect : 0;
 }
 
 /* ========================= Active child ========================= */
@@ -987,6 +1072,9 @@ function setActiveChild(childName) {
   renderTable();
   renderAchats();
   renderAvances();
+  renderGoals();
+  STATS_MONTH = null; STATS_MATIERE = null; STATS_POINT = null;
+  renderStats();
 }
 
 function resetEntryForm() {
@@ -1198,6 +1286,8 @@ async function refreshData() {
   await updateDbInfo();
   await renderAchats();
   await renderAvances();
+  renderGoals();
+  renderStats();
 }
 async function updateDbInfo() {
   const logCount = (await dbGetAll(STORE_LOG)).length;
@@ -1461,6 +1551,7 @@ async function renderAchats() {
         <span class="itemValue">${solde <= 0 ? "Remboursé" : `${solde} $`}</span>
       </div>
       <div class="muted">Payé ${paid} $ sur ${achat.totalAmount} $${achat.dueDate ? ` · échéance ${escapeHtml(formatDateFr(achat.dueDate))}` : ""}</div>
+      ${open && isPastDue(achat.dueDate) ? `<div class="warnText">⚠ Échéance dépassée</div>` : ""}
       <div class="progress"><div style="width:${pct}%"></div></div>
       ${open ? `<button class="outlineBtn" style="margin-top:12px;" type="button" onclick="payAchat(${achat.id})">Faire un paiement</button>` : ""}
       <details>
@@ -1478,6 +1569,7 @@ async function renderAchats() {
   $("homeAchats").innerHTML = openViews.map(({ achat, solde, pct }) => `
     <button class="txCard" style="display:block;" type="button" onclick="goTab('achats')">
       <span class="rowBetween" style="font-size:14px;"><span class="txDesc">${escapeHtml(achat.desc)}</span><span>${solde} $ restants</span></span>
+      ${isPastDue(achat.dueDate) ? `<span class="warnText" style="display:block;">⚠ Échéance dépassée</span>` : ""}
       <span class="progress" style="display:block;margin-top:8px;height:6px;"><span style="display:block;height:100%;width:${pct}%;background:var(--accent);border-radius:3px;"></span></span>
     </button>`).join("");
 }
@@ -1645,6 +1737,327 @@ async function refreshAvanceSelect() {
   updateHint();
 }
 
+/* ========================= Barèmes modifiables ========================= */
+const DEFAULT_RULES = {
+  ecole: { perfect: 20, cap: 10, high: 85, mid: 80, midDivisor: 2, reduction: { "Lily-Rose": 0, "Victor": 5 } },
+  bulletin: { min: 80, base: 100, perPct: 5, perfect: 50, honorMin: 90, honorBonus: 50, perPctAbove: 10 }
+};
+// Les barèmes et les objectifs vivent dans la configuration : ils suivent donc les sauvegardes.
+function normalizeCfgExtras(cfg) {
+  const saved = cfg.rules || {};
+  const num = (value, fallback) => (Number.isFinite(Number(value)) && value !== null && value !== "" && Number(value) >= 0) ? Number(value) : fallback;
+  const pick = (src, def) => Object.fromEntries(Object.keys(def).filter(k => k !== "reduction").map(k => [k, num(src?.[k], def[k])]));
+  const ecole = pick(saved.ecole, DEFAULT_RULES.ecole);
+  ecole.reduction = {
+    "Lily-Rose": num(saved.ecole?.reduction?.["Lily-Rose"], DEFAULT_RULES.ecole.reduction["Lily-Rose"]),
+    "Victor": num(saved.ecole?.reduction?.["Victor"], DEFAULT_RULES.ecole.reduction["Victor"])
+  };
+  if (ecole.midDivisor <= 0) ecole.midDivisor = DEFAULT_RULES.ecole.midDivisor;
+  cfg.rules = { ecole, bulletin: pick(saved.bulletin, DEFAULT_RULES.bulletin) };
+  cfg.goals = (Array.isArray(cfg.goals) ? cfg.goals : [])
+    .filter(g => g && FIXED_KIDS.includes(g.child) && String(g.desc || "").trim() && Number(g.target) > 0)
+    .map(g => ({ id: String(g.id || `${g.child}-${g.desc}-${g.target}`), child: g.child, desc: String(g.desc), target: Number(g.target), dueDate: g.dueDate ? String(g.dueDate) : null, createdAt: Number(g.createdAt) || Date.now() }));
+}
+const RULE_FIELDS = [
+  ["rEcolePerfect", r => r.ecole.perfect, (r, v) => { r.ecole.perfect = v; }],
+  ["rEcoleCap", r => r.ecole.cap, (r, v) => { r.ecole.cap = v; }],
+  ["rEcoleHigh", r => r.ecole.high, (r, v) => { r.ecole.high = v; }],
+  ["rEcoleMid", r => r.ecole.mid, (r, v) => { r.ecole.mid = v; }],
+  ["rEcoleLily", r => r.ecole.reduction["Lily-Rose"], (r, v) => { r.ecole.reduction["Lily-Rose"] = v; }],
+  ["rEcoleVictor", r => r.ecole.reduction["Victor"], (r, v) => { r.ecole.reduction["Victor"] = v; }],
+  ["rBulMin", r => r.bulletin.min, (r, v) => { r.bulletin.min = v; }],
+  ["rBulBase", r => r.bulletin.base, (r, v) => { r.bulletin.base = v; }],
+  ["rBulPerPct", r => r.bulletin.perPct, (r, v) => { r.bulletin.perPct = v; }],
+  ["rBulPerfect", r => r.bulletin.perfect, (r, v) => { r.bulletin.perfect = v; }],
+  ["rBulHonorMin", r => r.bulletin.honorMin, (r, v) => { r.bulletin.honorMin = v; }],
+  ["rBulHonorBonus", r => r.bulletin.honorBonus, (r, v) => { r.bulletin.honorBonus = v; }],
+  ["rBulPerPctAbove", r => r.bulletin.perPctAbove, (r, v) => { r.bulletin.perPctAbove = v; }]
+];
+function loadRulesUI() {
+  for (const [id, read] of RULE_FIELDS) $(id).value = read(CFG.rules);
+}
+async function saveRulesFromUI() {
+  const rules = JSON.parse(JSON.stringify(CFG.rules));
+  for (const [id, , write] of RULE_FIELDS) {
+    const raw = $(id).value;
+    const v = parseFloat(raw);
+    if (raw === "" || !Number.isFinite(v) || v < 0) return setStatus("Chaque valeur du barème doit être un nombre de 0 ou plus.");
+    write(rules, v);
+  }
+  if (rules.ecole.mid > rules.ecole.high) return setStatus("Le seuil de demi-calcul doit être plus bas que le seuil de plein calcul.");
+  if (rules.bulletin.min > rules.bulletin.honorMin) return setStatus("Le seuil du bonus doit être au moins égal à la moyenne minimale.");
+  CFG.rules = rules;
+  await saveConfig(CFG);
+  await logAction("BAREMES", 0, "Barèmes École et Bulletin modifiés");
+  await refreshData();
+  setStatus("Barèmes enregistrés");
+}
+async function resetRulesToDefault() {
+  if (!confirm("Remettre les barèmes par défaut ?")) return;
+  CFG.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
+  await saveConfig(CFG);
+  await logAction("BAREMES", 0, "Barèmes remis par défaut");
+  loadRulesUI();
+  await refreshData();
+  setStatus("Barèmes par défaut restaurés");
+}
+function renderRulesContent() {
+  const e = CFG.rules.ecole, b = CFG.rules.bulletin;
+  const fmt = (n) => String(n).replace(".", ",");
+  const reductions = FIXED_KIDS.filter(k => e.reduction[k] > 0)
+    .map(k => `<p><strong>${escapeHtml(k)}, catégorie École :</strong> la moyenne utilisée pour le calcul est réduite de ${fmt(e.reduction[k])} points sur 100${k === "Victor" ? " pour tenir compte de sa classe avancée" : ""}. La moyenne saisie reste conservée. Cet ajustement ne s’applique pas au Bulletin.</p>`).join("");
+  const exAmount = computeSchoolAmount("bulletin", 91, 80, null, 1, null);
+  $("rulesContent").innerHTML = `
+    <h3 id="rulesModalTitle">Règles : récompense École</h3>
+    <table>
+      <thead><tr><th>Condition</th><th>Calcul</th><th>Max</th></tr></thead>
+      <tbody>
+        <tr><td>Note = 100</td><td>Montant fixe</td><td>${fmt(e.perfect)} $</td></tr>
+        <tr><td>Note ≥ ${fmt(e.high)}</td><td>Note − Moyenne</td><td>${fmt(e.cap)} $</td></tr>
+        <tr><td>${fmt(e.mid)} ≤ Note &lt; ${fmt(e.high)}</td><td>(Note − Moyenne) ÷ ${fmt(e.midDivisor)}</td><td>${fmt(e.cap)} $</td></tr>
+        <tr><td>Note &lt; ${fmt(e.mid)}</td><td>—</td><td>0 $</td></tr>
+      </tbody>
+    </table>
+    <p>Pour École, la note et la moyenne sont d'abord ramenées sur 100 à partir du dénominateur commun. La différence Note − Moyenne doit être positive pour obtenir un montant. Le résultat final est arrondi à l'entier le plus proche.</p>
+    ${reductions}
+    <h3>Règles : Bulletin</h3>
+    <table>
+      <thead><tr><th>Condition</th><th>Montant</th></tr></thead>
+      <tbody>
+        <tr><td>Moyenne globale ≥ ${fmt(b.min)} %</td><td>${fmt(b.base)} $</td></tr>
+        <tr><td>Chaque % de la moyenne de l'enfant au-dessus de la moyenne de classe</td><td>+${fmt(b.perPct)} $ / %</td></tr>
+        <tr><td>Chaque matière à 100 %</td><td>+${fmt(b.perfect)} $</td></tr>
+        <tr><td>Moyenne globale ≥ ${fmt(b.honorMin)} %</td><td>+${fmt(b.honorBonus)} $</td></tr>
+        <tr><td>Chaque % au-dessus de ${fmt(b.honorMin)} % (moyenne globale)</td><td>+${fmt(b.perPctAbove)} $ / %</td></tr>
+        <tr><td>Moyenne globale &lt; ${fmt(b.min)} %</td><td>0 $</td></tr>
+      </tbody>
+    </table>
+    <p>Exemple : moyenne enfant 91 %, moyenne classe 80 %, 1 matière à 100 % → <strong>${exAmount} $</strong></p>`;
+}
+
+/* ========================= Objectifs d'épargne ========================= */
+function isPastDue(dateIso) { return !!dateIso && dateIso < todayISO(); }
+function childBalance(child) {
+  return ALL_DATA.filter(r => r.child === child && !isNeutralCat(r.category)).reduce((s, r) => s + r.amount, 0);
+}
+async function addGoal() {
+  const desc = $("newGoalDesc").value.trim();
+  const target = parseInt($("newGoalAmt").value, 10);
+  const dueDate = $("newGoalDue").value || null;
+  if (!desc || !Number.isFinite(target) || target <= 0) {
+    return setStatus("Indique une description et un montant pour créer l'objectif.");
+  }
+  CFG.goals.push({ id: `${Date.now()}-${Math.round(Math.random() * 1e6)}`, child: ACTIVE_CHILD, desc, target, dueDate, createdAt: Date.now() });
+  await saveConfig(CFG);
+  await logAction("OBJECTIF", 0, `Objectif créé: ${ACTIVE_CHILD} | ${desc} | ${target} $`);
+  $("newGoalDesc").value = ""; $("newGoalAmt").value = ""; $("newGoalDue").value = "";
+  renderGoals();
+  await renderLog();
+  setStatus(`Objectif « ${desc} » créé`);
+}
+async function deleteGoal(id) {
+  const goal = CFG.goals.find(g => g.id === id);
+  if (!goal || !confirm(`Supprimer l'objectif « ${goal.desc} » ?`)) return;
+  CFG.goals = CFG.goals.filter(g => g.id !== id);
+  await saveConfig(CFG);
+  await logAction("OBJECTIF", 0, `Objectif supprimé: ${goal.child} | ${goal.desc}`);
+  renderGoals();
+  await renderLog();
+  setStatus("Objectif supprimé");
+}
+function renderGoals() {
+  const goals = CFG.goals.filter(g => g.child === ACTIVE_CHILD).sort((a, b) => a.target - b.target);
+  const balance = childBalance(ACTIVE_CHILD);
+  $("goalsList").innerHTML = goals.length === 0
+    ? `<div class="emptyMsg">Aucun objectif. La progression suit le solde de l'enfant.</div>`
+    : goals.map(g => {
+      const missing = g.target - balance;
+      const reached = missing <= 0;
+      const pct = Math.max(0, Math.min(100, Math.round((balance / g.target) * 100)));
+      const late = !reached && isPastDue(g.dueDate);
+      return `<div class="itemCard">
+        <div class="itemHead">
+          <span class="itemTitle">${escapeHtml(g.desc)}</span>
+          <span class="itemValue">${reached ? "Atteint" : `Il manque ${missing} $`}</span>
+        </div>
+        <div class="muted">Solde ${balance} $ sur ${g.target} $${g.dueDate ? ` · échéance ${escapeHtml(formatDateFr(g.dueDate))}` : ""}</div>
+        ${late ? `<div class="warnText">⚠ Échéance dépassée</div>` : ""}
+        <div class="progress"><div style="width:${pct}%"></div></div>
+        <div class="itemActions"><button class="dangerBtn" type="button" data-goal-del="${escapeHtml(g.id)}">Supprimer</button></div>
+      </div>`;
+    }).join("");
+}
+
+/* ========================= Statistiques ========================= */
+let STATS_MONTH = null;    // mois touché dans le graphique, sinon le plus récent
+let STATS_MATIERE = null;  // matière choisie
+let STATS_POINT = null;    // note touchée dans le graphique, sinon la plus récente
+const SHORT_MONTHS = ["janv","févr","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
+function formatMonth(key, withYear) {
+  const names = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const [y, m] = key.split("-").map(Number);
+  return withYear ? `${names[m - 1]} ${y}` : names[m - 1];
+}
+function lastMonthKeys(count) {
+  const now = new Date();
+  const keys = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return keys;
+}
+function niceMax(value) {
+  if (value <= 0) return 10;
+  const mag = Math.pow(10, Math.floor(Math.log10(value)));
+  for (const step of [1, 2, 5, 10]) if (step * mag >= value) return step * mag;
+  return 10 * mag;
+}
+function roundedBar(x, y, w, h) {
+  const r = Math.min(4, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+function renderStats() {
+  const mine = ALL_DATA.filter(r => r.child === ACTIVE_CHILD);
+  const keys = lastMonthKeys(12);
+  const months = keys.map(key => ({ key, gains: 0, debits: 0 }));
+  const byKey = Object.fromEntries(months.map(m => [m.key, m]));
+  for (const r of mine) {
+    const m = byKey[String(r.date || "").slice(0, 7)];
+    if (!m) continue;
+    if (r.amount >= 0) m.gains += r.amount; else m.debits += -r.amount;
+  }
+  const totalGains = months.reduce((s, m) => s + m.gains, 0);
+  const totalDebits = months.reduce((s, m) => s + m.debits, 0);
+
+  const school = mine
+    .filter(r => (r.category || "").toLowerCase().trim() === "école" && Number.isFinite(r.note))
+    .map(r => {
+      const den = Number(r.denominator) > 0 ? Number(r.denominator) : 100;
+      return { ...r, pct: r.note * 100 / den, classPct: Number.isFinite(r.moyenne) ? r.moyenne * 100 / den : null, subject: r.matiere || "Sans matière" };
+    })
+    .sort((a, b) => (a.date || "").localeCompare(b.date || "") || (a.id || 0) - (b.id || 0));
+  const overall = school.length ? Math.round(school.reduce((s, r) => s + r.pct, 0) / school.length) : null;
+
+  $("statTiles").innerHTML = [
+    ["Gains, 12 mois", `${totalGains} $`],
+    ["Dépenses, 12 mois", `${totalDebits} $`],
+    ["Moyenne École", overall === null ? "—" : `${overall} %`]
+  ].map(([lbl, val]) => `<div class="statTile"><div class="lbl">${lbl}</div><div class="val">${val}</div></div>`).join("");
+
+  renderMonthChart(months);
+  renderMatieres(school);
+}
+function renderMonthChart(months) {
+  const W = 328, H = 176, left = 36, right = 2, top = 8, bottom = 22;
+  const plotW = W - left - right, plotH = H - top - bottom, base = top + plotH;
+  const max = niceMax(Math.max(...months.map(m => Math.max(m.gains, m.debits))));
+  const groupW = plotW / months.length;
+  const barW = Math.max(3, Math.min(9, (groupW - 6) / 2));
+  const yOf = (v) => base - (v / max) * plotH;
+  const selected = months.findIndex(m => m.key === STATS_MONTH);
+  const active = selected >= 0 ? selected : months.length - 1;
+  let svg = "";
+  for (const tick of [0, max / 2, max]) {
+    const y = yOf(tick);
+    svg += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
+    svg += `<text x="${left - 5}" y="${y + 4}" text-anchor="end">${tick}</text>`;
+  }
+  months.forEach((m, i) => {
+    const gx = left + i * groupW;
+    if (i === active) svg += `<rect x="${gx}" y="${top}" width="${groupW}" height="${plotH}" rx="4" fill="var(--field)"/>`;
+  });
+  months.forEach((m, i) => {
+    const cx = left + i * groupW + groupW / 2;
+    if (m.gains > 0) {
+      const h = Math.max(1, (m.gains / max) * plotH);
+      svg += `<path d="${roundedBar(cx - barW - 1, base - h, barW, h)}" fill="var(--viz-gain)"/>`;
+    }
+    if (m.debits > 0) {
+      const h = Math.max(1, (m.debits / max) * plotH);
+      svg += `<path d="${roundedBar(cx + 1, base - h, barW, h)}" fill="var(--viz-debit)"/>`;
+    }
+    if ((months.length - 1 - i) % 3 === 0) svg += `<text x="${cx}" y="${H - 6}" text-anchor="middle">${SHORT_MONTHS[Number(m.key.slice(5)) - 1]}</text>`;
+    svg += `<rect class="hit" data-month="${m.key}" x="${left + i * groupW}" y="0" width="${groupW}" height="${H}"/>`;
+  });
+  const sumText = months.map(m => `${formatMonth(m.key, true)} : gains ${m.gains} $, dépenses ${m.debits} $`).join(" ; ");
+  $("monthChart").innerHTML = `<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(sumText)}">${svg}</svg>`;
+  const a = months[active];
+  const net = a.gains - a.debits;
+  $("monthReadout").innerHTML = `<strong>${escapeHtml(formatMonth(a.key, true))}</strong> : gains ${a.gains} $ · dépenses ${a.debits} $ · net ${formatMoney(net)}`;
+  $("monthTable").innerHTML = `<table class="miniTable"><tbody>
+    <tr><td class="muted">Mois</td><td class="muted">Gains</td><td class="muted">Dépenses</td></tr>
+    ${months.slice().reverse().map(m => `<tr><td>${escapeHtml(formatMonth(m.key, true))}</td><td>${m.gains} $</td><td>${m.debits} $</td></tr>`).join("")}
+  </tbody></table>`;
+}
+function renderMatieres(school) {
+  const groups = new Map();
+  for (const r of school) {
+    if (!groups.has(r.subject)) groups.set(r.subject, []);
+    groups.get(r.subject).push(r);
+  }
+  const rows = [...groups.entries()].map(([subject, list]) => {
+    const withClass = list.filter(r => r.classPct !== null);
+    return {
+      subject, list, n: list.length,
+      avg: list.reduce((s, r) => s + r.pct, 0) / list.length,
+      classAvg: withClass.length ? withClass.reduce((s, r) => s + r.classPct, 0) / withClass.length : null
+    };
+  }).sort((a, b) => b.avg - a.avg);
+
+  if (rows.length === 0) {
+    $("matiereBars").innerHTML = `<div class="emptyMsg">Aucune note d'École pour ${escapeHtml(ACTIVE_CHILD)} pour l'instant.</div>`;
+    $("matiereDetailCard").hidden = true;
+    return;
+  }
+  if (!rows.some(r => r.subject === STATS_MATIERE)) { STATS_MATIERE = rows[0].subject; STATS_POINT = null; }
+  $("matiereBars").innerHTML = rows.map(r => `<button class="matRow" type="button" data-matiere="${escapeHtml(r.subject)}" aria-pressed="${r.subject === STATS_MATIERE}">
+    <span class="matHead"><span>${escapeHtml(r.subject)} <span class="muted">(${r.n} note${r.n > 1 ? "s" : ""})</span></span><span class="v">${Math.round(r.avg)} %</span></span>
+    <span class="matTrack"><span class="matFill" style="width:${Math.max(0, Math.min(100, r.avg))}%"></span>${r.classAvg !== null ? `<span class="matTick" style="left:calc(${Math.max(0, Math.min(100, r.classAvg))}% - 1px)"></span>` : ""}</span>
+  </button>`).join("");
+
+  const current = rows.find(r => r.subject === STATS_MATIERE);
+  $("matiereDetailCard").hidden = false;
+  $("matiereDetailTitle").textContent = `Évolution en ${current.subject}`;
+  renderMatiereChart(current.list);
+}
+function renderMatiereChart(list) {
+  const W = 328, H = 170, left = 36, right = 12, top = 10, bottom = 24;
+  const plotW = W - left - right, plotH = H - top - bottom, base = top + plotH;
+  const values = list.flatMap(r => r.classPct !== null ? [r.pct, r.classPct] : [r.pct]);
+  const low = Math.max(0, Math.floor((Math.min(...values) - 5) / 10) * 10);
+  const yOf = (v) => base - ((v - low) / (100 - low)) * plotH;
+  const xOf = (i) => list.length === 1 ? left + plotW / 2 : left + (i / (list.length - 1)) * plotW;
+  const selected = list.findIndex(r => r.id === STATS_POINT);
+  const active = selected >= 0 ? selected : list.length - 1;
+  let svg = "";
+  for (const tick of [low, Math.round((low + 100) / 2), 100]) {
+    const y = yOf(tick);
+    svg += `<line x1="${left}" x2="${W - right}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/>`;
+    svg += `<text x="${left - 5}" y="${y + 4}" text-anchor="end">${tick}</text>`;
+  }
+  const classPts = list.map((r, i) => r.classPct !== null ? `${xOf(i)},${yOf(r.classPct)}` : null).filter(Boolean);
+  if (classPts.length > 1) svg += `<polyline points="${classPts.join(" ")}" fill="none" stroke="var(--viz-class)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>`;
+  list.forEach((r, i) => {
+    if (r.classPct !== null) svg += `<circle cx="${xOf(i)}" cy="${yOf(r.classPct)}" r="3" fill="var(--viz-class)"/>`;
+  });
+  if (list.length > 1) svg += `<polyline points="${list.map((r, i) => `${xOf(i)},${yOf(r.pct)}`).join(" ")}" fill="none" stroke="var(--viz-note)" stroke-width="2" stroke-linejoin="round"/>`;
+  svg += `<line x1="${xOf(active)}" x2="${xOf(active)}" y1="${top}" y2="${base}" stroke="var(--muted)" stroke-width="1"/>`;
+  list.forEach((r, i) => {
+    svg += `<circle cx="${xOf(i)}" cy="${yOf(r.pct)}" r="${i === active ? 6 : 4}" fill="var(--viz-note)" stroke="var(--card)" stroke-width="2"/>`;
+  });
+  svg += `<text x="${left}" y="${H - 6}" text-anchor="start">${escapeHtml(formatDateFr(list[0].date))}</text>`;
+  if (list.length > 1) svg += `<text x="${W - right}" y="${H - 6}" text-anchor="end">${escapeHtml(formatDateFr(list[list.length - 1].date))}</text>`;
+  const bandW = list.length === 1 ? plotW : plotW / (list.length - 1);
+  list.forEach((r, i) => {
+    svg += `<rect class="hit" data-point="${r.id}" x="${xOf(i) - bandW / 2}" y="0" width="${bandW}" height="${H}"/>`;
+  });
+  const summary = list.map(r => `${formatDateFr(r.date)} : ${Math.round(r.pct)} %`).join(" ; ");
+  $("matiereChart").innerHTML = `<svg class="chartSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(summary)}">${svg}</svg>`;
+  const a = list[active];
+  $("matiereReadout").innerHTML = `<strong>${escapeHtml(formatDateFr(a.date))}</strong> : note ${Math.round(a.pct)} %${a.classPct !== null ? ` · classe ${Math.round(a.classPct)} %` : ""}<br>${escapeHtml(a.desc)}`;
+}
+
 /* ========================= Settings ========================= */
 function refreshDefaultCategorySettingOptions(cats, selected) {
   const select = $("defaultCatCfg");
@@ -1658,6 +2071,7 @@ async function loadSettingsUI() {
   $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n");
   $("backupDays").value = CFG.backup?.intervalDays || 7;
   $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
+  loadRulesUI();
 }
 async function saveSettingsFromUI() {
   const lines = $("catsCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
@@ -1836,6 +2250,7 @@ async function importJSON(file) {
   cfg.backup = cfg.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(cfg.backup.intervalDays)) || Number(cfg.backup.intervalDays) < 1) cfg.backup.intervalDays = 7;
   if (cfg.backup.lastBackupTs !== null && !Number.isFinite(Number(cfg.backup.lastBackupTs))) cfg.backup.lastBackupTs = null;
+  normalizeCfgExtras(cfg);
 
   const newTx = [], newLog = [], newAchats = [], newAvances = [];
   for (const r of payload.tx) {
@@ -2043,6 +2458,7 @@ async function init() {
   CFG.backup = CFG.backup || { intervalDays: 7, lastBackupTs: null };
   if (!Number.isFinite(Number(CFG.backup.intervalDays)) || Number(CFG.backup.intervalDays) < 1) CFG.backup.intervalDays = 7;
   if (CFG.backup.lastBackupTs !== null && !Number.isFinite(Number(CFG.backup.lastBackupTs))) CFG.backup.lastBackupTs = null;
+  normalizeCfgExtras(CFG);
 
   // Support raccourcis PWA (?kid=lily ou ?kid=victor)
   const kidParam = (new URLSearchParams(window.location.search).get("kid") || "").toLowerCase();
@@ -2112,6 +2528,36 @@ async function init() {
   // Achats et avances
   $("addAchatBtn").addEventListener("click", addAchat);
   $("addAvanceBtn").addEventListener("click", addAvance);
+  $("addGoalBtn").addEventListener("click", addGoal);
+  $("goalsList").addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-goal-del]");
+    if (btn) deleteGoal(btn.dataset.goalDel);
+  });
+
+  // Statistiques
+  $("monthChart").addEventListener("click", (e) => {
+    const hit = e.target.closest("[data-month]");
+    if (!hit) return;
+    STATS_MONTH = hit.dataset.month;
+    renderStats();
+  });
+  $("matiereBars").addEventListener("click", (e) => {
+    const row = e.target.closest("[data-matiere]");
+    if (!row) return;
+    STATS_MATIERE = row.dataset.matiere;
+    STATS_POINT = null;
+    renderStats();
+  });
+  $("matiereChart").addEventListener("click", (e) => {
+    const hit = e.target.closest("[data-point]");
+    if (!hit) return;
+    STATS_POINT = Number(hit.dataset.point);
+    renderStats();
+  });
+
+  // Barèmes
+  $("saveRulesBtn").addEventListener("click", saveRulesFromUI);
+  $("resetRulesBtn").addEventListener("click", resetRulesToDefault);
   $("deleteArchivedAchatsBtn").addEventListener("click", deleteArchivedAchats);
   $("deleteArchivedAvancesBtn").addEventListener("click", deleteArchivedAvances);
   $("sortAchatsTxBtn").addEventListener("click", () => {
