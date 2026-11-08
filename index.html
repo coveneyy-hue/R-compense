@@ -167,8 +167,14 @@
     .sheetFoot { padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px)); display:flex; gap:8px; border-top:1px solid var(--line); }
     #saveDiskBtn { flex:1; min-height:52px; font-size:16px; }
     #deleteEntryBtn { min-height:52px; }
-    #deleteEntryBtn[hidden], #schoolFields[hidden], #matiereFieldWrap[hidden], #nb100Wrap[hidden], #denominatorWrap[hidden], #achatField[hidden], #avanceField[hidden], #amtHint[hidden], #victorHint[hidden], #rulesInfoBtn[hidden], #addBtn[hidden], #backupBanner[hidden], #homeAchatsWrap[hidden], #deleteArchivedAchatsBtn[hidden], #deleteArchivedAvancesBtn[hidden] { display:none; }
+    #deleteEntryBtn[hidden], #schoolFields[hidden], #recogFields[hidden], #matiereFieldWrap[hidden], #nb100Wrap[hidden], #denominatorWrap[hidden], #achatField[hidden], #avanceField[hidden], #amtHint[hidden], #victorHint[hidden], #rulesInfoBtn[hidden], #addBtn[hidden], #backupBanner[hidden], #homeAchatsWrap[hidden], #deleteArchivedAchatsBtn[hidden], #deleteArchivedAvancesBtn[hidden] { display:none; }
     #schoolFields { display:flex; flex-direction:column; gap:12px; }
+    #recogFields { display:flex; flex-direction:column; gap:12px; }
+    .recogChip small { font-weight:500; opacity:.8; }
+    .recogList { display:flex; flex-direction:column; }
+    .recogRow { display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:44px; font-size:14px; border-top:1px solid var(--line); }
+    .recogRow:first-child { border-top:0; }
+    .recogRow strong { font-variant-numeric:tabular-nums; white-space:nowrap; }
     #schoolScoreRow { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
     #schoolScoreRow.has-denominator { grid-template-columns:repeat(3,minmax(0,1fr)); }
     #nb100Wrap { display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:14px; font-weight:500; }
@@ -365,6 +371,11 @@
         </details>
       </div>
       <div class="card">
+        <h2 class="chartTitle">Suivis et certificats</h2>
+        <div class="muted">Commentaires positifs des professeurs et certificats reçus.</div>
+        <div id="recogStats" style="margin-top:10px;"></div>
+      </div>
+      <div class="card">
         <h2 class="chartTitle">Notes par matière</h2>
         <div class="muted">Moyenne des notes d'École sur 100. Le trait marque la moyenne de la classe. Touche une matière pour voir son évolution.</div>
         <div id="matiereBars" class="stack" style="margin-top:8px;gap:2px;"></div>
@@ -476,6 +487,19 @@
             </div>
           </div>
         </details>
+        <details>
+          <summary>Suivis et certificats</summary>
+          <div class="detailsBody">
+            <div class="hint" style="margin:0;">Les nouveaux montants servent aux prochaines saisies. Les montants déjà enregistrés ne changent pas.</div>
+            <div><label for="recogSuiviTypes">Catégories de suivi pédagogique (une par ligne)</label><textarea id="recogSuiviTypes"></textarea></div>
+            <div><label for="recogSuiviAmount">Montant d'un suivi ($)</label><input id="recogSuiviAmount" type="number" min="0" step="1" inputmode="numeric" /></div>
+            <div><label for="recogCertTypes">Catégories de certificat et montant (une par ligne, ex. « Excellence = 20 »)</label><textarea id="recogCertTypes"></textarea></div>
+            <div class="btnGrid">
+              <button id="saveRecogBtn" class="secondaryBtn" type="button">Enregistrer</button>
+              <button id="resetRecogBtn" class="secondaryBtn" type="button">Par défaut</button>
+            </div>
+          </div>
+        </details>
         <button id="settingsRulesBtn" class="linkBtn" type="button" style="color:var(--ink);">Voir les règles École et Bulletin</button>
       </div>
       <div id="dbInfo" class="muted"></div>
@@ -552,6 +576,19 @@
         <button id="rulesInfoBtn" class="linkBtn" type="button" hidden>Voir les règles de calcul</button>
       </div>
 
+      <div id="recogFields" hidden>
+        <div>
+          <label for="recogMatiere">Matière</label>
+          <select id="recogMatiere"></select>
+          <div id="recogMatiereErr" class="field-error"></div>
+        </div>
+        <div>
+          <div class="fieldLabel" id="recogTypeLabel">Catégorie</div>
+          <div id="recogChips" class="chips" role="group" aria-labelledby="recogTypeLabel"></div>
+          <div id="recogTypeErr" class="field-error"></div>
+        </div>
+      </div>
+
       <div id="achatField" hidden>
         <label id="achatLabel" for="achatSelect">Achat à rembourser</label>
         <select id="achatSelect"><option value="">Choisir un achat</option></select>
@@ -606,12 +643,12 @@
 
 <script>
 const FIXED_KIDS = ["Lily-Rose", "Victor"];
-const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Bulletin","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
+const DEFAULT_CATS = ["Tâches ménagères","Comportement","Devoirs","École","Bulletin","Suivi pédagogique","Certificat","Dépense","Paiement","Avance","Gâterie","Éducation financière"];
 const DEBIT_CATS = ["Dépense","Paiement"]; // Catégories dont le montant est automatiquement négatif
 const NEUTRAL_CATS = []; // Avance est désormais positif pour la balance de l'enfant
 const DEFAULT_MATIERES = ["Danse","Éducation physique","Espagnol","Français","Histoire","Mathématique","Science"];
 // Catégories obligatoires injectées si absentes de la config
-const REQUIRED_CATS = ["Paiement", "Avance", "Bulletin"];
+const REQUIRED_CATS = ["Paiement", "Avance", "Bulletin", "Suivi pédagogique", "Certificat"];
 const DB_NAME = "BudgetEnfantsDB_v2";
 const DB_VERSION = 3;
 const STORE_CONFIG = "config";
@@ -654,6 +691,19 @@ function isNeutralCat(cat) {
 function isPaiementCat(cat) { return (cat || "").toLowerCase().trim() === "paiement"; }
 function isAvanceCat(cat) { return (cat || "").toLowerCase().trim() === "avance"; }
 function isBulletinCat(cat) { return (cat || "").toLowerCase().trim() === "bulletin"; }
+// Suivis pédagogiques (commentaires positifs des professeurs) et certificats.
+function isSuiviCat(cat) { return (cat || "").toLowerCase().trim() === "suivi pédagogique"; }
+function isCertificatCat(cat) { return (cat || "").toLowerCase().trim() === "certificat"; }
+function isRecogCat(cat) { return isSuiviCat(cat) || isCertificatCat(cat); }
+let RECOG_TYPE = null;       // catégorie choisie (ex. Engagement, Excellence)
+let RECOG_AUTO_DESC = null;  // description préremplie, remplacée tant que l'utilisateur ne l'a pas changée
+/** Catégories et montants des reconnaissances, selon Réglages. */
+function recogTypes(cat) {
+  const r = CFG.recognitions;
+  if (isSuiviCat(cat)) return r.suivi.types.map(name => ({ name, amount: r.suivi.amount }));
+  if (isCertificatCat(cat)) return r.certificat.types.map(t => ({ name: t.name, amount: t.amount }));
+  return [];
+}
 function sortCategoriesAlpha(cats) {
   return [...(cats || [])].sort((a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" }));
 }
@@ -984,6 +1034,54 @@ async function toggleSchoolFields(options) {
   $("amtHint").hidden = !isDebit;
 
   if (isSchoolLike && !options?.keepAmount) calculateSchoolAmount();
+
+  // Suivis pédagogiques et certificats : matière, catégorie, montant selon Réglages.
+  const isRecog = isRecogCat(cat);
+  $("recogFields").hidden = !isRecog;
+  if (isRecog) {
+    const sel = $("recogMatiere");
+    const prev = sel.value;
+    renderSelectOptions(sel, ["", ...(CFG.matieres || DEFAULT_MATIERES)], prev);
+    sel.options[0].textContent = "Choisir une matière";
+    if (RECOG_TYPE && !recogTypes(cat).some(t => t.name === RECOG_TYPE) && !options?.keepAmount) RECOG_TYPE = null;
+    renderRecogChips();
+  } else {
+    RECOG_TYPE = null;
+  }
+}
+
+function renderRecogChips() {
+  const cat = $("catSelect").value;
+  $("recogTypeLabel").textContent = isSuiviCat(cat) ? "Catégorie du suivi" : "Catégorie du certificat";
+  const types = recogTypes(cat);
+  const known = types.some(t => t.name === RECOG_TYPE);
+  const all = known || !RECOG_TYPE ? types : [...types, { name: RECOG_TYPE, amount: null }];
+  $("recogChips").innerHTML = all.map(t =>
+    `<button class="chip recogChip" type="button" data-recog="${escapeHtml(t.name)}" aria-pressed="${t.name === RECOG_TYPE}">${escapeHtml(t.name)}${t.amount === null ? "" : ` <small>${t.amount} $</small>`}</button>`
+  ).join("");
+}
+
+function recogAutoDesc() {
+  const cat = $("catSelect").value;
+  const parts = [cat, RECOG_TYPE, $("recogMatiere").value].filter(Boolean);
+  return parts.join(" · ");
+}
+
+/** Préremplit la description tant qu'elle n'a pas été changée à la main. */
+function refreshRecogDesc() {
+  const current = $("descInput").value.trim();
+  if (!current || current === RECOG_AUTO_DESC) {
+    RECOG_AUTO_DESC = recogAutoDesc();
+    $("descInput").value = RECOG_AUTO_DESC;
+  }
+}
+
+function pickRecogType(name) {
+  RECOG_TYPE = name;
+  const t = recogTypes($("catSelect").value).find(x => x.name === name);
+  if (t) $("amtInput").value = String(t.amount);
+  renderRecogChips();
+  refreshRecogDesc();
 }
 
 /* ========================= Auto-calculate amount for École / Bulletin ========================= */
@@ -1078,6 +1176,9 @@ function setActiveChild(childName) {
 }
 
 function resetEntryForm() {
+  RECOG_TYPE = null;
+  RECOG_AUTO_DESC = null;
+  if ($("recogMatiere").options.length) $("recogMatiere").value = "";
   $("dateInput").value = todayISO();
   $("catSelect").value = getDefaultCategory();
   $("amtInput").value = "";
@@ -1121,6 +1222,8 @@ async function saveOrUpdate() {
     matiere = $("matiereSelect").value;
     if (isEcole) denominator = parseFloat($("denominatorInput").value);
   }
+  const isRecog = isRecogCat(cat);
+  if (isRecog) matiere = $("recogMatiere").value;
 
   // ── Validation avec erreurs par champ ──
   const fieldErr = (id, msg) => {
@@ -1155,6 +1258,9 @@ async function saveOrUpdate() {
   if (isPaiement && !achatId)            { fieldErr("achatErr", "Champ requis — sélectionne un achat"); fieldInputErr("achatSelect", true); hasError = true; }
   if (isAvance && !avanceId)             { fieldErr("avanceErr", "Champ requis — sélectionne une avance"); fieldInputErr("avanceSelect", true); hasError = true; }
   if (achatId && avanceId)               { fieldErr("achatErr", "Choisir achat OU avance, pas les deux"); fieldErr("avanceErr", "Choisir achat OU avance, pas les deux"); hasError = true; }
+  fieldErr("recogMatiereErr", ""); fieldErr("recogTypeErr", ""); fieldInputErr("recogMatiere", false);
+  if (isRecog && !matiere)               { fieldErr("recogMatiereErr"); fieldInputErr("recogMatiere", true); hasError = true; }
+  if (isRecog && !RECOG_TYPE)            { fieldErr("recogTypeErr", "Choisis une catégorie"); hasError = true; }
   if (hasError) {
     setSaveMsg("Certains champs sont manquants", "warn");
     return;
@@ -1232,6 +1338,17 @@ async function saveOrUpdate() {
     }
   }
 
+  if (isRecog) {
+    const dup = (await dbGetAll(STORE_TX)).find(r =>
+      r && r.child === ACTIVE_CHILD && r.category === cat && r.date === dateVal &&
+      (r.matiere || "") === matiere && (r.recogType || "") === RECOG_TYPE &&
+      !(EDIT_MODE && EDIT_ID !== null && r.id === EDIT_ID)
+    );
+    if (dup && !window.confirm(`${ACTIVE_CHILD} a déjà ce ${cat.toLowerCase()} (${RECOG_TYPE}, ${matiere}) le ${formatDateFr(dateVal)}.\n\nL'ajouter quand même?`)) {
+      return setStatus("Enregistrement annulé.");
+    }
+  }
+
   const record = {
     child: ACTIVE_CHILD,
     date: dateVal,
@@ -1241,7 +1358,8 @@ async function saveOrUpdate() {
     note: ((isEcole || isBulletin) && Number.isFinite(note)) ? note : null,
     moyenne: ((isEcole || isBulletin) && Number.isFinite(moyenne)) ? moyenne : null,
     denominator: isEcole ? denominator : null,
-    matiere: isEcole ? matiere : null,
+    matiere: (isEcole || isRecog) ? matiere : null,
+    recogType: isRecog ? RECOG_TYPE : null,
     nb100: isBulletin ? NB100 : null,
     achatId: achatId,
     avanceId: avanceId,
@@ -1334,6 +1452,18 @@ async function editRecord(id) {
   // Garder le montant enregistré : il peut inclure un ajout manuel.
   await toggleSchoolFields({ keepAmount: true });
   if (isBulletinCat(rec.category)) setNb100(bulletinNb100(rec));
+  if (isRecogCat(rec.category)) {
+    RECOG_TYPE = rec.recogType || null;
+    RECOG_AUTO_DESC = null; // la description enregistrée n'est jamais remplacée automatiquement
+    const sel = $("recogMatiere");
+    if (rec.matiere && !Array.from(sel.options).some(o => o.value === rec.matiere)) {
+      const opt = document.createElement("option");
+      opt.value = rec.matiere; opt.textContent = rec.matiere + " (valeur existante)";
+      sel.appendChild(opt);
+    }
+    sel.value = rec.matiere || "";
+    renderRecogChips();
+  }
   // Restore matière
   if (rec.matiere) {
     $("matiereSelect").value = rec.matiere;
@@ -1379,7 +1509,7 @@ function formatDateFr(isoDate) {
 }
 function formatMoney(n) { return `${n >= 0 ? "+" : "−"}${Math.abs(n)} $`; }
 function txCardHTML(row) {
-  const meta = [row.category, formatDateFr(row.date), row.matiere].filter(Boolean).join(" · ");
+  const meta = [row.category, row.recogType, formatDateFr(row.date), row.matiere].filter(Boolean).join(" · ");
   return `<button class="txCard" type="button" onclick="editRecord(${row.id})">
     <span class="txText"><span class="txDesc">${escapeHtml(row.desc)}</span><span class="txMeta">${escapeHtml(meta)}</span></span>
     <span class="amt ${row.amount >= 0 ? "pos" : "neg"}">${formatMoney(row.amount)}</span>
@@ -1389,7 +1519,7 @@ function applyFilters(data) {
   let arr = data.filter(r => r.child === ACTIVE_CHILD);
   if (FILTER.kind === "gain") arr = arr.filter(r => r.amount >= 0);
   if (FILTER.kind === "debit") arr = arr.filter(r => r.amount < 0);
-  if (FILTER.kind === "school") arr = arr.filter(r => ["école", "bulletin"].includes((r.category || "").toLowerCase().trim()));
+  if (FILTER.kind === "school") arr = arr.filter(r => ["école", "bulletin", "suivi pédagogique", "certificat"].includes((r.category || "").toLowerCase().trim()));
   if (FILTER.cats.length > 0) arr = arr.filter(r => FILTER.cats.includes(r.category));
   if (FILTER.desc) {
     const s = FILTER.desc.toLowerCase();
@@ -1757,6 +1887,87 @@ function normalizeCfgExtras(cfg) {
   cfg.goals = (Array.isArray(cfg.goals) ? cfg.goals : [])
     .filter(g => g && FIXED_KIDS.includes(g.child) && String(g.desc || "").trim() && Number(g.target) > 0)
     .map(g => ({ id: String(g.id || `${g.child}-${g.desc}-${g.target}`), child: g.child, desc: String(g.desc), target: Number(g.target), dueDate: g.dueDate ? String(g.dueDate) : null, createdAt: Number(g.createdAt) || Date.now() }));
+  // Suivis pédagogiques (un montant pour toutes les catégories) et certificats (un montant par catégorie).
+  const rec = cfg.recognitions || {};
+  const names = (list, fallback) => {
+    const clean = (Array.isArray(list) ? list : []).map(s => String(s ?? "").trim()).filter(Boolean);
+    return clean.length ? [...new Set(clean)] : fallback.slice();
+  };
+  const certTypes = (Array.isArray(rec.certificat?.types) ? rec.certificat.types : [])
+    .map(t => ({ name: String(t?.name ?? "").trim(), amount: num(t?.amount, NaN) }))
+    .filter(t => t.name && Number.isFinite(t.amount));
+  cfg.recognitions = {
+    suivi: { types: names(rec.suivi?.types, DEFAULT_RECOGNITIONS.suivi.types), amount: num(rec.suivi?.amount, DEFAULT_RECOGNITIONS.suivi.amount) },
+    certificat: { types: certTypes.length ? certTypes : DEFAULT_RECOGNITIONS.certificat.types.map(t => ({ ...t })) },
+  };
+}
+const DEFAULT_RECOGNITIONS = {
+  suivi: { types: ["Engagement", "Travail", "Respect"], amount: 20 },
+  certificat: { types: [{ name: "Excellence", amount: 20 }, { name: "Distinction", amount: 20 }] },
+};
+function loadRecogUI() {
+  const r = CFG.recognitions;
+  $("recogSuiviTypes").value = r.suivi.types.join("\n");
+  $("recogSuiviAmount").value = r.suivi.amount;
+  $("recogCertTypes").value = r.certificat.types.map(t => `${t.name} = ${t.amount}`).join("\n");
+}
+async function saveRecogFromUI() {
+  const suiviTypes = $("recogSuiviTypes").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const suiviAmount = parseFloat($("recogSuiviAmount").value);
+  if (!suiviTypes.length) return setStatus("Indique au moins une catégorie de suivi.");
+  if (!Number.isFinite(suiviAmount) || suiviAmount < 0) return setStatus("Le montant d'un suivi doit être de 0 $ ou plus.");
+  const certTypes = [];
+  for (const line of $("recogCertTypes").value.split("\n").map(s => s.trim()).filter(Boolean)) {
+    const m = /^(.+?)\s*[=:]\s*(\d+(?:[.,]\d+)?)\s*\$?$/.exec(line);
+    if (!m) return setStatus(`Ligne de certificat invalide : « ${line} ». Écris par exemple « Excellence = 20 ».`);
+    certTypes.push({ name: m[1].trim(), amount: Number(m[2].replace(",", ".")) });
+  }
+  if (!certTypes.length) return setStatus("Indique au moins une catégorie de certificat.");
+  CFG.recognitions = { suivi: { types: [...new Set(suiviTypes)], amount: suiviAmount }, certificat: { types: certTypes } };
+  await saveConfig(CFG);
+  await logAction("RECONNAISSANCES", 0, "Suivis et certificats modifiés");
+  loadRecogUI();
+  setStatus("Suivis et certificats enregistrés");
+}
+async function resetRecogToDefault() {
+  if (!confirm("Remettre les suivis et certificats par défaut ?")) return;
+  CFG.recognitions = JSON.parse(JSON.stringify(DEFAULT_RECOGNITIONS));
+  await saveConfig(CFG);
+  loadRecogUI();
+  setStatus("Suivis et certificats par défaut restaurés");
+}
+/** Reconnaissances de l'enfant choisi : nombre et montant par catégorie et par matière. */
+function renderRecognitions() {
+  const mine = ALL_DATA.filter(r => r.child === ACTIVE_CHILD && isRecogCat(r.category));
+  const el = $("recogStats");
+  if (!mine.length) {
+    el.innerHTML = `<div class="muted">Aucun suivi pédagogique ni certificat pour ${escapeHtml(ACTIVE_CHILD)} pour l'instant.</div>`;
+    return;
+  }
+  const suivis = mine.filter(r => isSuiviCat(r.category));
+  const certs = mine.filter(r => isCertificatCat(r.category));
+  const total = mine.reduce((s, r) => s + r.amount, 0);
+  const group = (list, keyOf) => {
+    const m = new Map();
+    list.forEach(r => { const k = keyOf(r) || "Sans précision"; const x = m.get(k) || { k, n: 0, amt: 0 }; x.n += 1; x.amt += r.amount; m.set(k, x); });
+    return [...m.values()].sort((a, b) => b.n - a.n || a.k.localeCompare(b.k, "fr"));
+  };
+  const rows = (list) => list.map(x => `<div class="recogRow"><span>${escapeHtml(x.k)}</span><strong>${x.n} · ${x.amt} $</strong></div>`).join("");
+  const byMatiere = group(mine, r => r.matiere).map(x => {
+    const s = suivis.filter(r => (r.matiere || "Sans précision") === x.k).length;
+    const c = certs.filter(r => (r.matiere || "Sans précision") === x.k).length;
+    return { k: x.k, label: [s ? `${s} suivi${s > 1 ? "s" : ""}` : "", c ? `${c} certificat${c > 1 ? "s" : ""}` : ""].filter(Boolean).join(", "), amt: x.amt };
+  });
+  el.innerHTML = `
+    <div class="totals">
+      <div class="totalBox"><div class="lbl">Suivis</div><div class="val">${suivis.length}</div></div>
+      <div class="totalBox"><div class="lbl">Certificats</div><div class="val">${certs.length}</div></div>
+      <div class="totalBox"><div class="lbl">Gagné</div><div class="val amt pos">${total} $</div></div>
+    </div>
+    ${suivis.length ? `<div class="fieldLabel" style="margin:12px 0 0;">Suivis par catégorie</div><div class="recogList">${rows(group(suivis, r => r.recogType))}</div>` : ""}
+    ${certs.length ? `<div class="fieldLabel" style="margin:12px 0 0;">Certificats par catégorie</div><div class="recogList">${rows(group(certs, r => r.recogType))}</div>` : ""}
+    <div class="fieldLabel" style="margin:12px 0 0;">Par matière</div>
+    <div class="recogList">${byMatiere.map(x => `<div class="recogRow"><span>${escapeHtml(x.k)} <span class="muted">· ${escapeHtml(x.label)}</span></span><strong>${x.amt} $</strong></div>`).join("")}</div>`;
 }
 const RULE_FIELDS = [
   ["rEcolePerfect", r => r.ecole.perfect, (r, v) => { r.ecole.perfect = v; }],
@@ -1947,6 +2158,7 @@ function renderStats() {
 
   renderMonthChart(months);
   renderMatieres(school);
+  renderRecognitions();
 }
 function renderMonthChart(months) {
   const W = 328, H = 176, left = 36, right = 2, top = 8, bottom = 22;
@@ -2072,6 +2284,7 @@ async function loadSettingsUI() {
   $("backupDays").value = CFG.backup?.intervalDays || 7;
   $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
   loadRulesUI();
+  loadRecogUI();
 }
 async function saveSettingsFromUI() {
   const lines = $("catsCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
@@ -2265,6 +2478,7 @@ async function importJSON(file) {
       denominator: ((r.category || "").toLowerCase().trim() === "école") ? ((Number.isFinite(Number(r.denominator)) && Number(r.denominator) > 0) ? Number(r.denominator) : 100) : null,
       matiere: r.matiere ? String(r.matiere) : null,
       nb100: Number.isFinite(Number(r.nb100)) && r.nb100 !== null && r.nb100 !== undefined ? Number(r.nb100) : null,
+      recogType: r.recogType ? String(r.recogType) : null,
       achatId: r.achatId ? Number(r.achatId) : null,
       avanceId: r.avanceId ? Number(r.avanceId) : null,
       createdAt: normalizeTimestamp(r.createdAt, defaultCreatedAtNoon()),
@@ -2486,6 +2700,13 @@ async function init() {
   $("sheetBackdrop").addEventListener("click", closeSheet);
   $("saveDiskBtn").addEventListener("click", saveOrUpdate);
   $("deleteEntryBtn").addEventListener("click", () => { if (EDIT_ID !== null) deleteRecord(EDIT_ID); });
+  $("recogChips").addEventListener("click", (e) => {
+    const chip = e.target.closest("[data-recog]");
+    if (chip) pickRecogType(chip.dataset.recog);
+  });
+  $("recogMatiere").addEventListener("change", refreshRecogDesc);
+  $("saveRecogBtn").addEventListener("click", saveRecogFromUI);
+  $("resetRecogBtn").addEventListener("click", resetRecogToDefault);
   $("catChips").addEventListener("click", (e) => {
     const chip = e.target.closest("[data-cat]");
     if (chip) setCategory(chip.dataset.cat);
