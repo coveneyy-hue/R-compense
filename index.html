@@ -1033,6 +1033,13 @@ async function toggleSchoolFields(options) {
   const isDebit = isDebitCat(cat);
   $("amtHint").hidden = !isDebit;
 
+  // Paiement : description par défaut = année et mois de la date choisie (AAAAMM).
+  if (isPaiement && !options?.keepAmount) refreshPaymentDesc();
+  if (!isPaiement && PAY_AUTO_DESC && $("descInput").value.trim() === PAY_AUTO_DESC) {
+    $("descInput").value = "";
+    PAY_AUTO_DESC = null;
+  }
+
   if (isSchoolLike && !options?.keepAmount) calculateSchoolAmount();
 
   // Suivis pédagogiques et certificats : matière, catégorie, montant selon Réglages.
@@ -1175,9 +1182,23 @@ function setActiveChild(childName) {
   renderStats();
 }
 
+let PAY_AUTO_DESC = null;  // description AAAAMM préremplie pour un paiement
+/** Remplace la description par AAAAMM tant qu'elle est vide ou encore celle préremplie. */
+function refreshPaymentDesc() {
+  if (!isPaiementCat($("catSelect").value)) return;
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec($("dateInput").value || "");
+  if (!m) return;
+  const current = $("descInput").value.trim();
+  if (!current || current === PAY_AUTO_DESC) {
+    PAY_AUTO_DESC = m[1] + m[2];
+    $("descInput").value = PAY_AUTO_DESC;
+  }
+}
+
 function resetEntryForm() {
   RECOG_TYPE = null;
   RECOG_AUTO_DESC = null;
+  PAY_AUTO_DESC = null;
   if ($("recogMatiere").options.length) $("recogMatiere").value = "";
   $("dateInput").value = todayISO();
   $("catSelect").value = getDefaultCategory();
@@ -2707,6 +2728,7 @@ async function init() {
     if (chip) pickRecogType(chip.dataset.recog);
   });
   $("recogMatiere").addEventListener("change", refreshRecogDesc);
+  $("dateInput").addEventListener("change", refreshPaymentDesc);
   $("saveRecogBtn").addEventListener("click", saveRecogFromUI);
   $("resetRecogBtn").addEventListener("click", resetRecogToDefault);
   $("catChips").addEventListener("click", (e) => {
