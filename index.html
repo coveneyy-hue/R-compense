@@ -145,9 +145,18 @@
     .matTick { position:absolute; top:-3px; width:2px; height:14px; background:var(--ink); box-shadow:0 0 0 1px var(--card); }
     .warnText { font-size:13px; font-weight:600; color:var(--warn); margin-top:4px; }
 
-    #tabBar { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); padding-bottom:env(safe-area-inset-bottom,0px); border-top:1px solid var(--line); background:var(--nav); }
-    .tabBtn { min-height:62px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:12px; font-weight:500; color:var(--muted); }
+    #tabBar { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); padding-bottom:env(safe-area-inset-bottom,0px); border-top:1px solid var(--line); background:var(--nav); }
+    .tabBtn { position:relative; min-width:0; min-height:62px; padding:0 1px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:12px; font-weight:500; color:var(--muted); white-space:nowrap; }
     .tabBtn[aria-current="page"] { color:var(--accent); font-weight:700; }
+    .tabBtn:disabled { opacity:.5; }
+    /* Point d'alerte sur Partager quand une sauvegarde est due */
+    .tabDot { position:absolute; top:10px; left:calc(50% + 7px); width:9px; height:9px; border-radius:50%; background:var(--warn); box-shadow:0 0 0 2px var(--nav); }
+    .tabDot[hidden] { display:none; }
+
+    /* Réglages non enregistrés */
+    .dirtyBadge { margin-left:auto; padding:2px 8px; border-radius:10px; font-size:12px; font-weight:700; color:var(--warn); border:1px solid var(--warn); white-space:nowrap; }
+    .dirtyBadge[hidden] { display:none; }
+    .secondaryBtn.needsSave { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
 
     /* Message temporaire */
     #toast { position:fixed; left:16px; right:16px; bottom:calc(74px + env(safe-area-inset-bottom,0px)); z-index:60; min-height:48px; padding:6px 8px 6px 14px; display:none; align-items:center; justify-content:space-between; gap:8px; border-radius:12px; font-size:14px; background:var(--toast-bg); color:var(--toast-fg); box-shadow:0 4px 14px rgba(15,8,35,.3); }
@@ -398,14 +407,13 @@
         <h2 style="font-size:15px;">Sauvegarde</h2>
         <div id="backupInfo" class="muted"></div>
         <div id="storageInfo" class="muted"></div>
-        <button id="shareBtn" class="primaryBtn" type="button">Partager la sauvegarde</button>
         <div class="btnGrid">
           <button id="exportBtn" class="secondaryBtn" type="button">Télécharger</button>
           <button id="importBtn" class="secondaryBtn" type="button">Importer</button>
         </div>
         <input id="importFile" type="file" accept=".json,.txt,application/json,text/plain" style="display:none;" />
-        <details>
-          <summary>Rappel de sauvegarde</summary>
+        <details data-section="backup">
+          <summary>Rappel de sauvegarde<span class="dirtyBadge" hidden>Non enregistré</span></summary>
           <div class="detailsBody">
             <div class="fieldRow">
               <div>
@@ -427,8 +435,8 @@
       </div>
 
       <div class="card">
-        <details>
-          <summary>Catégories</summary>
+        <details data-section="cats">
+          <summary>Catégories<span class="dirtyBadge" hidden>Non enregistré</span></summary>
           <div class="detailsBody">
             <div><label for="catsCfg">Une catégorie par ligne</label><textarea id="catsCfg"></textarea></div>
             <div><label for="defaultCatCfg">Catégorie choisie par défaut</label><select id="defaultCatCfg"></select></div>
@@ -438,8 +446,8 @@
             </div>
           </div>
         </details>
-        <details>
-          <summary>Matières</summary>
+        <details data-section="matieres">
+          <summary>Matières<span class="dirtyBadge" hidden>Non enregistré</span></summary>
           <div class="detailsBody">
             <div><label for="matieresCfg">Une matière par ligne</label><textarea id="matieresCfg"></textarea></div>
             <div class="btnGrid">
@@ -458,8 +466,8 @@
             </div>
           </div>
         </details>
-        <details>
-          <summary>Barèmes École et Bulletin</summary>
+        <details data-section="rules">
+          <summary>Barèmes École et Bulletin<span class="dirtyBadge" hidden>Non enregistré</span></summary>
           <div class="detailsBody">
             <div class="hint" style="margin:0;">Les nouveaux barèmes servent aux prochains calculs. Les montants déjà enregistrés ne changent pas, sauf si tu modifies la note d'une entrée.</div>
             <div class="fieldLabel" style="margin:0;font-weight:700;">École</div>
@@ -487,8 +495,8 @@
             </div>
           </div>
         </details>
-        <details>
-          <summary>Suivis et certificats</summary>
+        <details data-section="recog">
+          <summary>Suivis et certificats<span class="dirtyBadge" hidden>Non enregistré</span></summary>
           <div class="detailsBody">
             <div class="hint" style="margin:0;">Les nouveaux montants servent aux prochaines saisies. Les montants déjà enregistrés ne changent pas.</div>
             <div><label for="recogSuiviTypes">Catégories de suivi pédagogique (une par ligne)</label><textarea id="recogSuiviTypes"></textarea></div>
@@ -521,6 +529,10 @@
     </button>
     <button class="tabBtn" type="button" data-tab="settings">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Réglages
+    </button>
+    <button id="shareTabBtn" class="tabBtn" type="button" aria-label="Partager la sauvegarde">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.7l7.6-4.4M8.2 13.3l7.6 4.4"/></svg>Partager
+      <span id="shareDot" class="tabDot" hidden></span>
     </button>
   </nav>
 
@@ -912,7 +924,7 @@ let CURRENT_TAB = "home";
 function showTab(id) {
   CURRENT_TAB = id;
   document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.dataset.screen === id));
-  document.querySelectorAll(".tabBtn").forEach(b => {
+  document.querySelectorAll(".tabBtn[data-tab]").forEach(b => {
     if (b.dataset.tab === id) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   $("addBtn").hidden = !(id === "home" || id === "history");
@@ -920,6 +932,7 @@ function showTab(id) {
 }
 function goTab(id) {
   if (id === CURRENT_TAB) return;
+  if (!confirmLeaveSettings()) return;
   if (CURRENT_TAB === "home") { history.pushState({ rc: "tab" }, ""); showTab(id); }
   else if (id === "home") history.back();
   else showTab(id);
@@ -952,7 +965,11 @@ function closeRulesModal() { if (isRulesOpen()) history.back(); }
 function handleBackGesture() {
   if (isRulesOpen()) $("rulesModal").classList.remove("open");
   else if (isSheetOpen()) hideSheet();
-  else if (CURRENT_TAB !== "home") showTab("home");
+  else if (CURRENT_TAB !== "home") {
+    // Le geste retour a déjà retiré l'entrée d'historique : on la remet si l'on reste dans Réglages.
+    if (!confirmLeaveSettings()) { history.pushState({ rc: "tab" }, ""); return; }
+    showTab("home");
+  }
 }
 function prefersDark() { return !!(window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches); }
 function applyTheme() {
@@ -1948,14 +1965,14 @@ async function saveRecogFromUI() {
   CFG.recognitions = { suivi: { types: [...new Set(suiviTypes)], amount: suiviAmount }, certificat: { types: certTypes } };
   await saveConfig(CFG);
   await logAction("RECONNAISSANCES", 0, "Suivis et certificats modifiés");
-  loadRecogUI();
+  loadSettingsSection("recog");
   setStatus("Suivis et certificats enregistrés");
 }
 async function resetRecogToDefault() {
   if (!confirm("Remettre les suivis et certificats par défaut ?")) return;
   CFG.recognitions = JSON.parse(JSON.stringify(DEFAULT_RECOGNITIONS));
   await saveConfig(CFG);
-  loadRecogUI();
+  loadSettingsSection("recog");
   setStatus("Suivis et certificats par défaut restaurés");
 }
 /** Reconnaissances de l'enfant choisi : nombre et montant par catégorie et par matière. */
@@ -2021,6 +2038,7 @@ async function saveRulesFromUI() {
   if (rules.bulletin.min > rules.bulletin.honorMin) return setStatus("Le seuil du bonus doit être au moins égal à la moyenne minimale.");
   CFG.rules = rules;
   await saveConfig(CFG);
+  loadSettingsSection("rules");
   await logAction("BAREMES", 0, "Barèmes École et Bulletin modifiés");
   await refreshData();
   setStatus("Barèmes enregistrés");
@@ -2030,7 +2048,7 @@ async function resetRulesToDefault() {
   CFG.rules = JSON.parse(JSON.stringify(DEFAULT_RULES));
   await saveConfig(CFG);
   await logAction("BAREMES", 0, "Barèmes remis par défaut");
-  loadRulesUI();
+  loadSettingsSection("rules");
   await refreshData();
   setStatus("Barèmes par défaut restaurés");
 }
@@ -2299,14 +2317,63 @@ function refreshDefaultCategorySettingOptions(cats, selected) {
   const sorted = sortCategoriesAlpha(cats);
   renderSelectOptions(select, sorted, sorted.includes(selected) ? selected : (sorted[0] || ""));
 }
-async function loadSettingsUI() {
-  $("catsCfg").value = CFG.cats.join("\n");
-  refreshDefaultCategorySettingOptions(CFG.cats, getDefaultCategory());
-  $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n");
-  $("backupDays").value = CFG.backup?.intervalDays || 7;
+/* Chaque section de Réglages a son propre bouton Enregistrer. On garde les valeurs
+   enregistrées de ses champs : une section est « non enregistrée » dès qu'un champ en diffère. */
+const SETTINGS_SECTIONS = [
+  { key: "backup", label: "Rappel de sauvegarde", save: "saveBackupCfgBtn", fields: ["backupDays"],
+    load: () => { $("backupDays").value = CFG.backup?.intervalDays || 7; } },
+  { key: "cats", label: "Catégories", save: "saveCfgBtn", fields: ["catsCfg", "defaultCatCfg"],
+    load: () => { $("catsCfg").value = CFG.cats.join("\n"); refreshDefaultCategorySettingOptions(CFG.cats, getDefaultCategory()); } },
+  { key: "matieres", label: "Matières", save: "saveMatieresCfgBtn", fields: ["matieresCfg"],
+    load: () => { $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n"); } },
+  { key: "rules", label: "Barèmes École et Bulletin", save: "saveRulesBtn", fields: RULE_FIELDS.map(f => f[0]),
+    load: loadRulesUI },
+  { key: "recog", label: "Suivis et certificats", save: "saveRecogBtn", fields: ["recogSuiviTypes", "recogSuiviAmount", "recogCertTypes"],
+    load: loadRecogUI },
+];
+const SAVED_SETTINGS = {}; // id du champ -> valeur enregistrée
+function settingsSection(key) { return SETTINGS_SECTIONS.find(s => s.key === key); }
+function isSectionDirty(s) { return s.fields.some(id => $(id).value !== SAVED_SETTINGS[id]); }
+function dirtySettingsSections() { return SETTINGS_SECTIONS.filter(isSectionDirty); }
+/** Remet les champs d'une section aux valeurs enregistrées et la marque comme à jour. */
+function loadSettingsSection(key) {
+  const s = settingsSection(key);
+  s.load();
+  for (const id of s.fields) SAVED_SETTINGS[id] = $(id).value;
+  updateDirtySettingsUI();
+}
+function updateDirtySettingsUI() {
+  for (const s of SETTINGS_SECTIONS) {
+    const dirty = isSectionDirty(s);
+    const badge = document.querySelector(`details[data-section="${s.key}"] .dirtyBadge`);
+    if (badge) badge.hidden = !dirty;
+    $(s.save).classList.toggle("needsSave", dirty);
+  }
+}
+/** Avant de quitter Réglages : avertit s'il reste des modifications non enregistrées. */
+function confirmLeaveSettings() {
+  if (CURRENT_TAB !== "settings") return true;
+  const dirty = dirtySettingsSections();
+  if (!dirty.length) return true;
+  const ok = confirm(
+    `Modifications non enregistrées :\n• ${dirty.map(s => s.label).join("\n• ")}\n\n` +
+    `Quitter sans enregistrer ? Ces modifications seront perdues.\n(Annuler pour rester et appuyer sur Enregistrer.)`
+  );
+  if (ok) {
+    dirty.forEach(s => loadSettingsSection(s.key));
+  } else {
+    const details = document.querySelector(`details[data-section="${dirty[0].key}"]`);
+    if (details) { details.open = true; details.scrollIntoView({ block: "start", behavior: "smooth" }); }
+  }
+  return ok;
+}
+/** keepDirty : ne pas écraser ce qui est en cours de modification dans les autres sections. */
+async function loadSettingsUI(options) {
   $("lastBackupDisplay").value = CFG.backup?.lastBackupTs ? formatTS(CFG.backup.lastBackupTs) : "Jamais";
-  loadRulesUI();
-  loadRecogUI();
+  for (const s of SETTINGS_SECTIONS) {
+    if (options?.keepDirty && SAVED_SETTINGS[s.fields[0]] !== undefined && isSectionDirty(s)) continue;
+    loadSettingsSection(s.key);
+  }
 }
 async function saveSettingsFromUI() {
   const lines = $("catsCfg").value.trim().split("\n").map(l => l.trim()).filter(Boolean);
@@ -2315,7 +2382,8 @@ async function saveSettingsFromUI() {
   const requestedDefault = $("defaultCatCfg").value;
   CFG.defaults.cat = CFG.cats.includes(requestedDefault) ? requestedDefault : sortCategoriesAlpha(CFG.cats)[0];
   await saveConfig(CFG);
-  await initUIAfterConfig();
+  await initUIAfterConfig({ keepDirty: true });
+  loadSettingsSection("cats");
   setStatus("Catégories enregistrées ✅");
 }
 async function resetSettingsToDefault() {
@@ -2323,7 +2391,8 @@ async function resetSettingsToDefault() {
   CFG.cats = DEFAULT_CATS.slice();
   CFG.defaults.cat = DEFAULT_CATS[0];
   await saveConfig(CFG);
-  await initUIAfterConfig();
+  await initUIAfterConfig({ keepDirty: true });
+  loadSettingsSection("cats");
   setStatus("Catégories par défaut restaurées ✅");
 }
 async function saveMatieresFromUI() {
@@ -2331,6 +2400,7 @@ async function saveMatieresFromUI() {
   if (lines.length === 0) return setStatus("Au moins une matière.");
   CFG.matieres = lines;
   await saveConfig(CFG);
+  loadSettingsSection("matieres");
   renderMatiereSelect();
   setStatus("Matières enregistrées ✅");
 }
@@ -2338,7 +2408,7 @@ async function resetMatieresToDefault() {
   if (!confirm("Remettre les matières par défaut ?")) return;
   CFG.matieres = DEFAULT_MATIERES.slice();
   await saveConfig(CFG);
-  $("matieresCfg").value = CFG.matieres.join("\n");
+  loadSettingsSection("matieres");
   renderMatiereSelect();
   setStatus("Matières par défaut restaurées ✅");
 }
@@ -2352,6 +2422,8 @@ async function saveBackupReminderFromUI() {
   if (!Number.isFinite(days) || days < 1) return setStatus("Intervalle invalide.");
   CFG.backup.intervalDays = days;
   await saveConfig(CFG);
+  loadSettingsSection("backup");
+  maybeRemindBackup();
   setStatus("Rappel backup enregistré ✅");
 }
 function maybeRemindBackup() {
@@ -2368,6 +2440,8 @@ function maybeRemindBackup() {
     : `Dernière sauvegarde : ${formatTS(last)} (il y a ${days} jour${days > 1 ? "s" : ""}).`;
   $("backupBanner").textContent = message;
   $("backupBanner").hidden = !overdue;
+  $("shareDot").hidden = !overdue;
+  $("shareTabBtn").setAttribute("aria-label", overdue ? "Partager la sauvegarde (sauvegarde à faire)" : "Partager la sauvegarde");
 }
 // La date du dernier backup n'avance que si l'envoi est confirmé.
 async function markBackupDone(message) {
@@ -2390,23 +2464,33 @@ async function backupDownload() {
 }
 // Partage Android (Drive, OneDrive, courriel...). Le partage de fichiers .json est refusé
 // par Chrome : la sauvegarde part donc en .json.txt, un format que l'import accepte aussi.
+// Appelée directement par l'icône Partager : la fenêtre de partage s'ouvre sans passer par Réglages.
+let SHARING = false;
 async function backupShare() {
-  const name = `budget-enfants-${todayISO()}`;
-  const files = [
-    new File([await buildBackupJSON()], `${name}.json.txt`, { type: "text/plain" }),
-    new File([await buildBackupCSV()], `${name}.csv`, { type: "text/csv" })
-  ];
-  if (!navigator.canShare || !navigator.canShare({ files })) return backupDownload();
+  if (SHARING) return; // un double toucher n'ouvre pas deux fenêtres de partage
+  SHARING = true;
+  $("shareTabBtn").disabled = true;
   try {
-    await navigator.share({ files, title: "Sauvegarde R-compense" });
-  } catch (err) {
-    return setStatus(err && err.name === "AbortError"
-      ? "Partage annulé : la date du dernier backup n'a pas changé."
-      : "Échec du partage : la date du dernier backup n'a pas changé.");
+    const name = `budget-enfants-${todayISO()}`;
+    const files = [
+      new File([await buildBackupJSON()], `${name}.json.txt`, { type: "text/plain" }),
+      new File([await buildBackupCSV()], `${name}.csv`, { type: "text/csv" })
+    ];
+    if (!navigator.canShare || !navigator.canShare({ files })) return await backupDownload();
+    try {
+      await navigator.share({ files, title: "Sauvegarde R-compense" });
+    } catch (err) {
+      return setStatus(err && err.name === "AbortError"
+        ? "Partage annulé : la date du dernier backup n'a pas changé."
+        : "Échec du partage : la date du dernier backup n'a pas changé.");
+    }
+    await logAction("BACKUP_PARTAGE", 0, "Sauvegarde partagée (JSON + CSV)");
+    await markBackupDone("Sauvegarde partagée ✅");
+    await refreshData();
+  } finally {
+    SHARING = false;
+    $("shareTabBtn").disabled = false;
   }
-  await logAction("BACKUP_PARTAGE", 0, "Sauvegarde partagée (JSON + CSV)");
-  await markBackupDone("Sauvegarde partagée ✅");
-  await refreshData();
 }
 
 /* ========================= Export CSV ========================= */
@@ -2596,7 +2680,7 @@ function clearFilters() {
   $("filterDesc").value = ""; $("createdFrom").value = ""; $("createdTo").value = ""; $("fromDate").value = ""; $("toDate").value = "";
   syncKindChips();
 }
-async function initUIAfterConfig() {
+async function initUIAfterConfig(options) {
   const child = FIXED_KIDS.includes(ACTIVE_CHILD) ? ACTIVE_CHILD : (FIXED_KIDS.includes(CFG.defaults.kid) ? CFG.defaults.kid : FIXED_KIDS[0]);
   ACTIVE_CHILD = child;
   applyTheme();
@@ -2604,7 +2688,7 @@ async function initUIAfterConfig() {
   renderMatiereSelect();
   renderFilterSelects();
   clearFilters();
-  await loadSettingsUI();
+  await loadSettingsUI(options);
   await refreshData();
   await updateBackupUI();
   maybeRemindBackup();
@@ -2706,9 +2790,10 @@ async function init() {
 
   // Navigation
   window.addEventListener("popstate", handleBackGesture);
-  document.querySelectorAll(".tabBtn").forEach(b => b.addEventListener("click", () => goTab(b.dataset.tab)));
+  document.querySelectorAll(".tabBtn[data-tab]").forEach(b => b.addEventListener("click", () => goTab(b.dataset.tab)));
+  $("shareTabBtn").addEventListener("click", backupShare);
   $("seeAllBtn").addEventListener("click", () => goTab("history"));
-  $("backupBanner").addEventListener("click", () => goTab("settings"));
+  $("backupBanner").addEventListener("click", backupShare);
   $("toastUndo").addEventListener("click", () => {
     const undo = TOAST_UNDO;
     toast("");
@@ -2821,7 +2906,6 @@ async function init() {
     applyTheme();
   });
   if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
-  $("shareBtn").addEventListener("click", backupShare);
   $("exportBtn").addEventListener("click", backupDownload);
   $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", async (e) => { const f = e.target.files?.[0]; if (!f) return; await importJSON(f); e.target.value = ""; });
@@ -2836,6 +2920,14 @@ async function init() {
   });
   $("saveMatieresCfgBtn").addEventListener("click", saveMatieresFromUI);
   $("resetMatieresCfgBtn").addEventListener("click", resetMatieresToDefault);
+
+  // Réglages non enregistrés : badge et bouton Enregistrer mis en évidence dès la première frappe.
+  const settingsScreen = document.querySelector('[data-screen="settings"]');
+  settingsScreen.addEventListener("input", updateDirtySettingsUI);
+  settingsScreen.addEventListener("change", updateDirtySettingsUI);
+  window.addEventListener("beforeunload", (e) => {
+    if (dirtySettingsSections().length) { e.preventDefault(); e.returnValue = ""; }
+  });
 }
 
 init();
