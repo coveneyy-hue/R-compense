@@ -119,6 +119,11 @@
     .miniTable { width:100%; border-collapse:collapse; font-size:13px; }
     .miniTable td { padding:6px 4px; border-top:1px solid var(--line); vertical-align:top; overflow-wrap:anywhere; }
     .miniTable td:last-child { text-align:right; white-space:nowrap; }
+    #subjectHistory { flex:none; }
+    #subjectHistory h3 { font-size:16px; margin:0 0 8px; overflow-wrap:anywhere; }
+    .schoolHistoryRow { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 12px; border-top:1px solid var(--line); padding:9px 0; }
+    .schoolHistoryRow .txDesc { overflow-wrap:anywhere; }
+    .schoolHistoryRow .txMeta { grid-column:1 / -1; }
     .logRow { padding:8px 0; border-top:1px solid var(--line); font-size:13px; overflow-wrap:anywhere; }
 
     /* Barre d'onglets */
@@ -633,6 +638,10 @@
         <input id="descInput" type="text" maxlength="100" />
         <div id="descErr" class="field-error"></div>
       </div>
+      <section id="subjectHistory" class="card" aria-labelledby="subjectHistoryTitle" hidden>
+        <h3 id="subjectHistoryTitle"></h3>
+        <div id="subjectHistoryRows" aria-live="polite"></div>
+      </section>
     </div>
     <div class="sheetFoot">
       <button id="deleteEntryBtn" class="dangerBtn" type="button" hidden>Supprimer</button>
@@ -1011,6 +1020,43 @@ function setNb100(n) {
 }
 
 /* ========================= School fields + Dépense hint ========================= */
+let subjectHistoryRequest = 0;
+async function refreshSubjectHistory() {
+  const request = ++subjectHistoryRequest;
+  const subject = $("matiereSelect").value;
+  const panel = $("subjectHistory");
+  const list = $("subjectHistoryRows");
+  panel.hidden = !subject || $("catSelect").value.trim().toLowerCase() !== "école";
+  list.replaceChildren();
+  if (panel.hidden) return;
+
+  $("subjectHistoryTitle").textContent = "Montants alloués · " + subject;
+  list.textContent = "Chargement…";
+  let records;
+  try {
+    records = await dbGetAll(STORE_TX);
+  } catch {
+    if (request === subjectHistoryRequest) list.textContent = "Impossible de charger les montants.";
+    return;
+  }
+  if (request !== subjectHistoryRequest) return;
+  const rows = records.filter(r => r.child === ACTIVE_CHILD && r.matiere === subject &&
+    (r.category || "").trim().toLowerCase() === "école" && !(EDIT_MODE && r.id === EDIT_ID))
+    .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id - a.id);
+
+  list.innerHTML = rows.length ? rows.map(r => {
+    const den = Number(r.denominator) > 0 ? Number(r.denominator) : 100;
+    const score = n => Number.isFinite(n) ? n.toLocaleString("fr-CA") + "/" + den : "N/D";
+    const pct = Number.isFinite(r.note) && den !== 100
+      ? " (" + (100 * r.note / den).toLocaleString("fr-CA", {maximumFractionDigits:1}) + " %)" : "";
+    return `<div class="schoolHistoryRow">
+      <span class="txDesc">${escapeHtml(r.desc || "Sans description")}</span>
+      <span class="amt ${r.amount >= 0 ? "pos" : "neg"}">${formatMoney(r.amount)}</span>
+      <span class="txMeta">${escapeHtml(formatDateFr(r.date))} · Note ${score(r.note)}${pct} · Moy. classe ${score(r.moyenne)}</span>
+    </div>`;
+  }).join("") : '<p class="muted">Aucun autre montant enregistré pour cette matière.</p>';
+}
+
 async function toggleSchoolFields(options) {
   const cat = $("catSelect").value || "";
   const isEcole = cat.toLowerCase().trim() === "école";
@@ -1036,6 +1082,7 @@ async function toggleSchoolFields(options) {
     $("moyenneInput").value = "";
   }
   if (!isEcole && $("matiereSelect").options.length > 0) $("matiereSelect").selectedIndex = 0;
+  refreshSubjectHistory();
   if (!isBulletin) setNb100(0);
   if (isEcole) {
     const den = parseFloat($("denominatorInput").value);
@@ -1514,6 +1561,7 @@ async function editRecord(id) {
       $("matiereSelect").value = rec.matiere;
     }
   }
+  refreshSubjectHistory();
   // Restore achatId
   if (rec.achatId) {
     $("achatSelect").value = rec.achatId;
@@ -2812,6 +2860,7 @@ async function init() {
     const chip = e.target.closest("[data-recog]");
     if (chip) pickRecogType(chip.dataset.recog);
   });
+  $("matiereSelect").addEventListener("change", refreshSubjectHistory);
   $("recogMatiere").addEventListener("change", refreshRecogDesc);
   $("dateInput").addEventListener("change", refreshPaymentDesc);
   $("saveRecogBtn").addEventListener("click", saveRecogFromUI);
