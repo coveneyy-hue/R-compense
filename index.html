@@ -909,21 +909,20 @@ function renderFilterSelects() {
   renderSelectOptions($("filterCat"), CFG.cats, "");
   setSelectedValues($("filterCat"), []);
 }
-function renderMatiereSelect(selectedValue) {
-  const matieres = CFG.matieres || DEFAULT_MATIERES;
-  const sel = $("matiereSelect");
-  sel.innerHTML = "";
-  const blank = document.createElement("option");
-  blank.value = "";
-  blank.textContent = "Choisir une matière";
-  sel.appendChild(blank);
-  for (const opt of matieres) {
-    const o = document.createElement("option");
-    o.value = opt;
-    o.textContent = opt;
-    if (selectedValue && opt === selectedValue) o.selected = true;
-    sel.appendChild(o);
+const compareMatieres = new Intl.Collator("fr-CA", { sensitivity: "accent", numeric: true }).compare;
+function sortedMatieres() {
+  return (CFG.matieres || DEFAULT_MATIERES).slice().sort(compareMatieres);
+}
+function renderMatiereSelect(selectedValue = "", sel = $("matiereSelect"), includeExisting = false) {
+  const matieres = sortedMatieres();
+  const existing = includeExisting && selectedValue && !matieres.includes(selectedValue);
+  if (existing) {
+    matieres.push(selectedValue);
+    matieres.sort(compareMatieres);
   }
+  renderSelectOptions(sel, ["", ...matieres], selectedValue);
+  sel.options[0].textContent = "Choisir une matière";
+  if (existing) sel.selectedOptions[0].textContent += " (valeur existante)";
 }
 
 /* ========================= Navigation, feuille de saisie, thème ========================= */
@@ -1112,8 +1111,7 @@ async function toggleSchoolFields(options) {
   if (isRecog) {
     const sel = $("recogMatiere");
     const prev = sel.value;
-    renderSelectOptions(sel, ["", ...(CFG.matieres || DEFAULT_MATIERES)], prev);
-    sel.options[0].textContent = "Choisir une matière";
+    renderMatiereSelect(prev, sel);
     if (RECOG_TYPE && !recogTypes(cat).some(t => t.name === RECOG_TYPE) && !options?.keepAmount) RECOG_TYPE = null;
     renderRecogChips();
   } else {
@@ -1541,26 +1539,10 @@ async function editRecord(id) {
   if (isRecogCat(rec.category)) {
     RECOG_TYPE = rec.recogType || null;
     RECOG_AUTO_DESC = null; // la description enregistrée n'est jamais remplacée automatiquement
-    const sel = $("recogMatiere");
-    if (rec.matiere && !Array.from(sel.options).some(o => o.value === rec.matiere)) {
-      const opt = document.createElement("option");
-      opt.value = rec.matiere; opt.textContent = rec.matiere + " (valeur existante)";
-      sel.appendChild(opt);
-    }
-    sel.value = rec.matiere || "";
+    renderMatiereSelect(rec.matiere || "", $("recogMatiere"), true);
     renderRecogChips();
   }
-  // Restore matière
-  if (rec.matiere) {
-    $("matiereSelect").value = rec.matiere;
-    if ($("matiereSelect").value !== rec.matiere) {
-      const opt = document.createElement("option");
-      opt.value = rec.matiere;
-      opt.textContent = rec.matiere + " (valeur existante)";
-      $("matiereSelect").appendChild(opt);
-      $("matiereSelect").value = rec.matiere;
-    }
-  }
+  if (rec.matiere) renderMatiereSelect(rec.matiere, $("matiereSelect"), true);
   refreshSubjectHistory();
   // Restore achatId
   if (rec.achatId) {
@@ -2040,7 +2022,7 @@ function renderRecognitions() {
     return [...m.values()].sort((a, b) => b.n - a.n || a.k.localeCompare(b.k, "fr"));
   };
   const rows = (list) => list.map(x => `<div class="recogRow"><span>${escapeHtml(x.k)}</span><strong>${x.n} · ${x.amt} $</strong></div>`).join("");
-  const byMatiere = group(mine, r => r.matiere).map(x => {
+  const byMatiere = group(mine, r => r.matiere).sort((a, b) => compareMatieres(a.k, b.k)).map(x => {
     const s = suivis.filter(r => (r.matiere || "Sans précision") === x.k).length;
     const c = certs.filter(r => (r.matiere || "Sans précision") === x.k).length;
     return { k: x.k, label: [s ? `${s} suivi${s > 1 ? "s" : ""}` : "", c ? `${c} certificat${c > 1 ? "s" : ""}` : ""].filter(Boolean).join(", "), amt: x.amt };
@@ -2303,7 +2285,7 @@ function renderMatieres(school) {
       avg: list.reduce((s, r) => s + r.pct, 0) / list.length,
       classAvg: withClass.length ? withClass.reduce((s, r) => s + r.classPct, 0) / withClass.length : null
     };
-  }).sort((a, b) => b.avg - a.avg);
+  }).sort((a, b) => compareMatieres(a.subject, b.subject));
 
   if (rows.length === 0) {
     $("matiereBars").innerHTML = `<div class="emptyMsg">Aucune note d'École pour ${escapeHtml(ACTIVE_CHILD)} pour l'instant.</div>`;
@@ -2373,7 +2355,7 @@ const SETTINGS_SECTIONS = [
   { key: "cats", label: "Catégories", save: "saveCfgBtn", fields: ["catsCfg", "defaultCatCfg"],
     load: () => { $("catsCfg").value = CFG.cats.join("\n"); refreshDefaultCategorySettingOptions(CFG.cats, getDefaultCategory()); } },
   { key: "matieres", label: "Matières", save: "saveMatieresCfgBtn", fields: ["matieresCfg"],
-    load: () => { $("matieresCfg").value = (CFG.matieres || DEFAULT_MATIERES).join("\n"); } },
+    load: () => { $("matieresCfg").value = sortedMatieres().join("\n"); } },
   { key: "rules", label: "Barèmes École et Bulletin", save: "saveRulesBtn", fields: RULE_FIELDS.map(f => f[0]),
     load: loadRulesUI },
   { key: "recog", label: "Suivis et certificats", save: "saveRecogBtn", fields: ["recogSuiviTypes", "recogSuiviAmount", "recogCertTypes"],
