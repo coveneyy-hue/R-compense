@@ -1041,7 +1041,7 @@ async function refreshSubjectHistory() {
   if (request !== subjectHistoryRequest) return;
   const rows = records.filter(r => r.child === ACTIVE_CHILD && r.matiere === subject &&
     (r.category || "").trim().toLowerCase() === "école" && !(EDIT_MODE && r.id === EDIT_ID))
-    .sort((a, b) => (a.date || "").localeCompare(b.date || "") || a.id - b.id);
+    .sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id - a.id);
 
   list.innerHTML = rows.length ? rows.map(r => {
     const den = Number(r.denominator) > 0 ? Number(r.denominator) : 100;
