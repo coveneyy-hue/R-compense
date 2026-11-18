@@ -628,7 +628,7 @@
         </div>
         <div>
           <label for="dateInput">Date</label>
-          <input id="dateInput" type="date" />
+          <input id="dateInput" type="date" required aria-describedby="dateErr" />
           <div id="dateErr" class="field-error"></div>
         </div>
       </div>
@@ -1262,7 +1262,7 @@ function resetEntryForm() {
   RECOG_AUTO_DESC = null;
   PAY_AUTO_DESC = null;
   if ($("recogMatiere").options.length) $("recogMatiere").value = "";
-  $("dateInput").value = todayISO();
+  $("dateInput").value = "";
   $("catSelect").value = getDefaultCategory();
   $("amtInput").value = "";
   $("descInput").value = "";
@@ -1329,7 +1329,7 @@ async function saveOrUpdate() {
   clearAllErrors();
 
   let hasError = false;
-  if (!dateVal)                          { fieldErr("dateErr"); fieldInputErr("dateInput", true); hasError = true; }
+  if (!dateVal)                          { fieldErr("dateErr", "Choisis une date."); fieldInputErr("dateInput", true); hasError = true; }
   if (!Number.isFinite(amt))             { fieldErr("amtErr");  fieldInputErr("amtInput",  true); hasError = true; }
   // La description est facultative pour un paiement : l'achat lié suffit à l'identifier.
   if (!desc && !isPaiement)              { fieldErr("descErr"); fieldInputErr("descInput",  true); hasError = true; }
